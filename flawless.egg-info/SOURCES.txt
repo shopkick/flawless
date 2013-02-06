@@ -2,7 +2,7 @@ CHANGES
 LICENSE
 MANIFEST.in
 PKG-INFO
-README
+README.md
 setup.py
 config/building_blocks
 config/email_remapping

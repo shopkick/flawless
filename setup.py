@@ -18,7 +18,7 @@ setup(
   name='flawless',
   version='0.1',
   description='Python Error Monitoring and Reporting',
-  long_description=open("README").read(),
+  long_description=open("README.md").read(),
   license='MPL 2.0',
   author='John Egan',
   author_email='john@shopkick.com',
