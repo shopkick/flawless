@@ -1,0 +1,9 @@
+recursive-include flawless *.py
+recursive-include tests *.py
+recursive-include examples *.py
+include config/*
+include *
+global-exclude .DS_Store
+global-exclude *.swp
+exclude .gitignore
+prune .git

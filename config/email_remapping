@@ -1,0 +1,11 @@
+[
+  " This file allows you to remap one email address to another. Email addresses that are being",
+  " remapped can be specified as fully qualified email addresses, or just the portion before",
+  " the @ sign",
+  "",
+  " Examples:",
+  {
+    "remap": "test@example.com",
+    "to": "darth_vader@example.com"
+  }
+]

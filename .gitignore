@@ -1,0 +1,5 @@
+*.pyc
+*.sw?
+.DS_STORE
+build/*
+dist/*

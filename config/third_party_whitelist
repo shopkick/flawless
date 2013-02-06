@@ -1,0 +1,19 @@
+[
+  " What is the thirdparty whitelist? Sometimes your code will call into a third party library",
+  "     and that library can raise an exception that you want to ignore.",
+  "",
+  " How to specify a whitelist: This file is a json formatted arry of whitelist entries. Each",
+  "     whitelisted error is a json object that specifies the following fields.",
+  "         filename: The full file path for the library from the base of the source tree",
+  "         function_name: The name of the function that is being whitelisted",
+  "         code_fragment: Full or partial python code for the line of code that is being",
+  "                        whitelisted. The reason code fragment is used instead of line nubmer",
+  "                        is because line numbers change extremely frequently",
+  "",
+  " Example entry:",
+  {
+    "filename": "flawless/example.py",
+    "function_name": "example_func",
+    "code_fragment": "raise flawless.BadExample()"
+  }
+]

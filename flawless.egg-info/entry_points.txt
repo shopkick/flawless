@@ -1,0 +1,4 @@
+
+  [console_scripts]
+  flawless = flawless.server.manage:main
+  
