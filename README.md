@@ -2,9 +2,9 @@ Flawless
 ========
 
 Flawless is a simple Python framework developed at shopkick for detecting bugs in a production
-environment. Flawless traps exceptions and then sends an email to the developer that last touched
-the line of code responsible for the exception. Flawless integrates with git and uses
-git-blame to determine which developer to email.
+environment. Flawless traps exceptions and then sends an email to the developer responsible
+for causing the exception. Flawless integrates with git and uses git-blame to determine which
+developer to email.
 
 
 Project website: [https://github.com/shopkick/flawless](https://github.com/shopkick/flawless)
@@ -28,7 +28,8 @@ use the following command to start a short questionnaire to setup the server.
 
 4. Integrate the Flawless client into your code. If you are running a WSGI application such as
 django or pylons/pyramid, simply add the flawless.client.middleware to your application. Otherwise
-you can wrap particular functions or entire classes by using flawless.client.decorators.
+you can wrap particular functions or entire classes by using flawless.client.decorators. View the
+examples directory for some actual code examples.
 
     Tip: Edit flawless.client.default.py and set the default host:port for your Flawless server
 
@@ -52,8 +53,8 @@ line of code text blank. Likewise, an entire file can be whitelisted by leaving 
 function blank.
 
 
-Server Public API Endpoints
----------------------------
+Server User Interface
+---------------------
 
 **/get\_weekly\_error\_report** - Shows all errors that happened this week in a leaderboard style format
 
