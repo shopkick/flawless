@@ -56,7 +56,8 @@ function blank.
 Server User Interface
 ---------------------
 
-**/get\_weekly\_error\_report** - Shows all errors that happened this week in a leaderboard style format
+**/get\_weekly\_error\_report** - Shows all errors that happened this week. ses a leaderboard style
+format to show which developer is responsible for causing the most errors this week.
 
      Parameters:
        timestamp (optional) - Specify which week you want to view. Default is the current week.
@@ -132,7 +133,7 @@ example.
        email - Email address of the watcher
        filepath - The path to the file being watched
        watch_all_errors - If true, any exception that gets reported and contains this file in it's
-             traceback will be sent to the watcher. If fales, the watcher will only receive reports
+             traceback will be sent to the watcher. If false, the watcher will only receive reports
              for which a line in the file was actually blamed for causing the error
 
 
