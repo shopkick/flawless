@@ -4,7 +4,7 @@
   <head>
     <meta charset='utf-8' />
     <meta http-equiv="X-UA-Compatible" content="chrome=1" />
-    <meta name="description" content="Flawless : A simple Python framework to catch exceptions and report them via email" />
+    <meta name="description" content="Flawless : A simple Python framework to catch exceptions and notify only the developer that wrote the buggy code" />
 
     <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
 
@@ -19,7 +19,7 @@
           <a id="forkme_banner" href="https://github.com/shopkick/flawless">View on GitHub</a>
 
           <h1 id="project_title">Flawless</h1>
-          <h2 id="project_tagline">A simple Python framework to catch exceptions and report them via email</h2>
+          <h2 id="project_tagline">A simple Python framework to catch exceptions and notify only the developer that wrote the buggy code</h2>
 
             <section id="downloads">
               <a class="zip_download_link" href="https://github.com/shopkick/flawless/zipball/master">Download this project as a .zip file</a>
@@ -34,9 +34,9 @@
         <h1>Flawless</h1>
 
 <p>Flawless is a simple Python framework developed at shopkick for detecting bugs in a production
-environment. Flawless traps exceptions and then uses git blame to send an email to the developer responsible for causing the exception.</p>
+environment. Flawless traps exceptions and then uses git blame to send an email to the developer who wrote the buggy code.</p>
 
-<p>At shopkick, we've found Flawless has been an invaluable tool for detecting new bugs within a matter of minutes after a code push.</p>
+<p>At shopkick, we've found Flawless has been an invaluable tool for detecting new bugs within a matter of minutes after a code push. Flawless only contacts the developer that wrote the buggy code and sends them only a single report for an exception (i.e. it doesn't spam their inbox with every occurrence).</p>
 
 <p>Source Code: <a href="https://github.com/shopkick/flawless">https://github.com/shopkick/flawless</a></p>
 
