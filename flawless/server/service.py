@@ -370,7 +370,7 @@ class FlawlessService(object):
         mod_time = mod_time.strftime("%Y-%m-%d %H:%M:%S")
         known_entry = self._get_entry(blamed_entry, self.known_errors)
         err_info = api.ErrorInfo(error_count=1,
-                                 developer_email=email,
+                                 developer_email=self._get_email(email),
                                  date=mod_time,
                                  email_sent=False,
                                  last_occurrence=cur_time,
