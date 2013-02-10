@@ -62,6 +62,8 @@ format to show which developer is responsible for causing the most errors this w
      Parameters:
        timestamp (optional) - Specify which week you want to view. Default is the current week.
        include_known_errors (optional) - Include errors from config/known_errors. Default is False.
+       include_modified_before_min_date (optional) - Include errors originating in code modified
+           before flawless.cfg option "report_only_after_minimum_date". Default is False.
 
 **/check\_health** - Check if the server is up and running. Also displays server's configuration
 parameters
