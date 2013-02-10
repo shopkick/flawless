@@ -85,7 +85,8 @@ def serve(conf_path):
   if not os.path.exists(config.data_dir_path):
     os.makedirs(config.data_dir_path)
 
-  logging.basicConfig(level=getattr(logging, config.log_level), stream=sys.stderr)
+  logging.basicConfig(level=getattr(logging, config.log_level), filename=config.log_file,
+                      stream=sys.stderr)
   flawless_service = FlawlessService()
   server = SimpleThreadedHTTPServer(('', config.port), SimpleRequestHTTPHandler)
   server.attach_service(flawless_service)

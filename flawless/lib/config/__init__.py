@@ -69,6 +69,7 @@ OPTIONS = [
 
   # Logging
   FlawlessOption("log_level", "INFO", str, "The logging level"),
+  FlawlessOption("log_file", None, str, "Path to the log file"),
 ]
 
 
