@@ -65,7 +65,7 @@ class CodeIdentifierBaseClass(object):
     self.filename = filename
     self.function_name = function_name
     # Condense whitespace to make comparissions more forgiving
-    self.code_fragment = re.sub("\s+", " ", code_fragment)
+    self.code_fragment = None if not code_fragment else re.sub("\s+", " ", code_fragment)
 
     # Optional fields
     self.min_alert_threshold = min_alert_threshold
@@ -117,12 +117,12 @@ class StackTraceEntry(CodeIdentifierBaseClass):
 
 
 class BuildingBlock(CodeIdentifierBaseClass):
-  def __init__(self, filename, function_name, code_fragment):
+  def __init__(self, filename, function_name=None, code_fragment=None):
     super(BuildingBlock, self).__init__(filename, function_name, code_fragment)
 
 
 class ThirdPartyWhitelistEntry(CodeIdentifierBaseClass):
-  def __init__(self, filename, function_name, code_fragment):
+  def __init__(self, filename, function_name=None, code_fragment=None):
     super(ThirdPartyWhitelistEntry, self).__init__(filename, function_name, code_fragment)
 
 
@@ -453,7 +453,8 @@ class FlawlessService(object):
   def index(self, *args, **kwargs):
     return self.get_weekly_error_report(*args, **kwargs)
 
-  def get_weekly_error_report(self, timestamp=None, include_known_errors=False):
+  def get_weekly_error_report(self, timestamp=None, include_known_errors=False,
+                              include_modified_before_min_date=False):
     file_path = self._file_path_for_ms(int(timestamp) * 1000) if timestamp else None
     retdict = dict()
     if timestamp is None or self.errors_seen.get_path() == file_path:
@@ -467,7 +468,8 @@ class FlawlessService(object):
     grouped_errors = collections.defaultdict(list)
     developer_score = collections.defaultdict(int)
     for key, value in retdict.items():
-      if not value.is_known_error or include_known_errors:
+      if ((not value.is_known_error or include_known_errors) and
+          (value.date >= config.report_only_after_minimum_date or include_modified_before_min_date)):
         grouped_errors[value.developer_email].append((key, value))
         developer_score[value.developer_email] += value.error_count
 

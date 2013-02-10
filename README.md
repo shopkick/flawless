@@ -7,7 +7,7 @@ for causing the exception. Flawless integrates with git and uses git-blame to de
 developer to email.
 
 
-Project website: [https://github.com/shopkick/flawless](https://github.com/shopkick/flawless)
+Project website: [http://shopkick.github.com/flawless/](http://shopkick.github.com/flawless/)
 
 
 4 Step Setup Guide
