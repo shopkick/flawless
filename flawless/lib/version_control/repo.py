@@ -62,7 +62,7 @@ class GitRepository(Repository):
     self.natural_sort_func = \
       lambda s: tuple(int(num) if num else alpha for num, alpha in self.digit_tokenizer_pattern(s))
 
-  def _run(self, args, log_output=False):
+  def _raw_run(self, args, log_output=False):
     p = self.open_process_func(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     err = p.stderr.read()
     out = p.stdout.read()
@@ -72,18 +72,24 @@ class GitRepository(Repository):
       log.error(err)
     return out
 
-  def blame(self, filename, line_number):
-    args = [
+  def _run_git_command(self, args, log_output=False):
+    base_args = [
       config.git_cli_path,
       "--git-dir=%s" % os.path.join(self.local_path, ".git"),
       "--work-tree=%s" % self.local_path,
+    ]
+    base_args.extend(args)
+    return self._raw_run(base_args, log_output=log_output)
+
+  def blame(self, filename, line_number):
+    args = [
       "blame",
       "-p",
       os.path.join(self.local_path, filename),
       "-L",
       "%d,+1" % line_number,
     ]
-    output = self._run(args)
+    output = self._run_git_command(args)
     email, modified = None, None
     for line in output.split("\n"):
       if email and modified:
@@ -102,19 +108,19 @@ class GitRepository(Repository):
     if not self.remote_url:
       return
 
-    branch_names = self._run([config.git_cli_path,  "fetch"], log_output=log_output)
-    all_branches = self._run([config.git_cli_path, "branch", "-r"], log_output=log_output).split("\n")
-    all_branches = [s.strip() for s in all_branches if "->" not in s]
+    branch_names = self._run_git_command(["fetch"], log_output=log_output)
+    all_branches = self._run_git_command(["branch", "-r"], log_output=log_output).split("\n")
+    all_branches = [s.strip() for s in all_branches if "->" not in s and s.strip()]
     all_branches = sorted(all_branches, key=self.natural_sort_func)
     if self.branch_pattern:
       all_branches = [s for s in all_branches if self.branch_pattern.match(s)]
 
-    self._run([config.git_cli_path, "reset", "--hard", all_branches[-1]], log_output=log_output)
+    self._run_git_command(["reset", "--hard", all_branches[-1]], log_output=log_output)
 
   def create(self):
     if not os.path.exists(self.local_path):
       os.makedirs(self.local_path)
-    self._run(
+    self._raw_run(
       [config.git_cli_path, "clone", self.remote_url, self.local_path],
       log_output=True,
     )
