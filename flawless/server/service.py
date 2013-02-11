@@ -517,7 +517,7 @@ class FlawlessService(object):
         <head>
           <title>Flawless Traceback</title>
         </head>
-        <body style='font-family: courier'>
+        <body style='font-family: courier; font-size: 10pt'>
           {data}
         </body>
       </html>
