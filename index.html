@@ -40,7 +40,20 @@ environment. Flawless traps exceptions and then uses git blame to send an email 
 
 <p>Source Code: <a href="https://github.com/shopkick/flawless">https://github.com/shopkick/flawless</a></p>
 
-<h2>How it Works</h2>
+<h2>Why You Should Use Flawless</h2>
+
+<ul>
+<li><p>Only sends 1 email per line of code. Even if a particular line of code causes thousands of
+exceptions, only one email will be sent.</p></li>
+<li><p>Only emails 1 developer. Flawless uses git-blame to figure out which developer is responsible
+for a particular exception, and will only email that developer.</p></li>
+<li><p>Don't report exceptions in old code. If you set report_only_after_minimum_date, then
+Flawless will only report exceptions caused by code modified after
+report_only_after_minimum_date.</p></li>
+<li><p>Don't alert on library code. You can mark certain files/functions as library code, and when an
+exception originates in those files/functions, the caller will be blamed for the error instead
+of the library code.</p></li>
+</ul><h2>How it Works</h2>
 
 <p>The Flawless client wraps your code with a try/except block. When an exception is caught it then
 sends the entire traceback to the Flawless server. The Flawless server then aggregates exception
