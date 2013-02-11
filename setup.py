@@ -21,9 +21,15 @@ def markdown_to_reST(text):
   text = re.sub(pattern=r"\n       (\w+) - (.+)\n",
                 repl=r"\n\n       *\g<1>* - \g<2>\n",
                 string=text)
+
   # Parse [http://url](text), and just leave the url
   text = re.sub(pattern=r"\[([^\]]+)\]\([^)]+\)",
                 repl=r"\g<1>",
+                string=text)
+
+  # Disable formatting of numbered lists
+  text = re.sub(pattern=r"\n(\d+). ",
+                repl=r"\n\\\g<1>. ",
                 string=text)
   return text
 

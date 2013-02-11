@@ -39,20 +39,20 @@ Description: Flawless
         4 Step Setup Guide
         ------------------
         
-        1. Install Flawless. After this step you should have an executable named flawless in your path.
+        \1. Install Flawless. After this step you should have an executable named flawless in your path.
         
             $> python setup.py install
         
-        2. Setup the Flawless server. Go to the server which you want to host the Flawless backend. Then
+        \2. Setup the Flawless server. Go to the server which you want to host the Flawless backend. Then
         use the following command to start a short questionnaire to setup the server.
         
             $> flawless configure
         
-        3. Start the Flawless server
+        \3. Start the Flawless server
         
             $> flawless start -conf path/to/flawless.cfg
         
-        4. Integrate the Flawless client into your code. If you are running a WSGI application such as
+        \4. Integrate the Flawless client into your code. If you are running a WSGI application such as
         django or pylons/pyramid, simply add the flawless.client.middleware to your application. Otherwise
         you can wrap particular functions or entire classes by using flawless.client.decorators. View the
         examples directory for some actual code examples.
