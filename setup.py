@@ -12,13 +12,26 @@
 
 import os
 import os.path
+import re
 from setuptools import setup, find_packages
+
+def markdown_to_reST(text):
+  '''This is not a general purpose converter. Only converts this readme'''
+  # Convert parameters to italics and prepend a newline
+  text = re.sub(pattern=r"\n       (\w+) - (.+)\n",
+                repl=r"\n\n       *\g<1>* - \g<2>\n",
+                string=text)
+  # Parse [http://url](text), and just leave the url
+  text = re.sub(pattern=r"\[([^\]]+)\]\([^)]+\)",
+                repl=r"\g<1>",
+                string=text)
+  return text
 
 setup(
   name='flawless',
-  version='0.1',
+  version='0.1.1',
   description='Python Error Monitoring and Reporting',
-  long_description=open("README.md").read(),
+  long_description=markdown_to_reST(open("README.md").read()),
   license='MPL 2.0',
   author='John Egan',
   author_email='john@shopkick.com',

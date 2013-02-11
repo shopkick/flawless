@@ -10,6 +10,24 @@ developer to email.
 Project website: [http://shopkick.github.com/flawless/](http://shopkick.github.com/flawless/)
 
 
+Why You Should Use Flawless
+---------------------------
+
+  * Only sends 1 email per line of code. Even if a particular line of code causes thousands of
+    exceptions, only one email will be sent.
+
+  * Only emails 1 developer. Flawless uses git-blame to figure out which developer is responsible
+    for a particular exception, and will only email that developer.
+
+  * Don't report exceptions in old code. If you set report\_only\_after\_minimum\_date, then
+    Flawless will only report exceptions caused by code modified after
+    report\_only\_after\_minimum\_date.
+
+  * Don't alert on library code. You can mark certain files/functions as library code, and when an
+    exception originates in those files/functions, the caller will be blamed for the error instead
+    of the library code.
+
+
 4 Step Setup Guide
 ------------------
 
@@ -60,10 +78,10 @@ Server User Interface
 format to show which developer is responsible for causing the most errors this week.
 
      Parameters:
-       timestamp (optional) - Specify which week you want to view. Default is the current week.
-       include_known_errors (optional) - Include errors from config/known_errors. Default is False.
-       include_modified_before_min_date (optional) - Include errors originating in code modified
-           before flawless.cfg option "report_only_after_minimum_date". Default is False.
+       timestamp - (optional) Specify which week you want to view. Default is the current week.
+       include_known_errors - (optional) Include errors from config/known_errors. Default is False.
+       include_modified_before_min_date - (optional) Include errors originating in code modified
+       before flawless.cfg option "report_only_after_minimum_date". Default is False.
 
 **/check\_health** - Check if the server is up and running. Also displays server's configuration
 parameters
@@ -73,11 +91,11 @@ parameters
 **/view\_traceback** - View the most recent traceback for a particular error
 
      Parameters:
-       filename (required) - Specify the filename in which the error occurred
-       function_name (required) - Specify the name of the function in which the error occurred
-       line_number (required) - Specify the line number on which the error occurred
-       text (required) - Specify the full text that appears on line_number
-       timestamp (optional) - Specify which week you want to view. Default is the current week.
+       filename - (required) Specify the filename in which the error occurred
+       function_name - (required) Specify the name of the function in which the error occurred
+       line_number - (required) Specify the line number on which the error occurred
+       text - (required) Specify the full text that appears on line_number
+       timestamp - (optional) Specify which week you want to view. Default is the current week.
 
 
 Configuration Files Reference
@@ -90,9 +108,9 @@ rather than blaming the author of the library. See file for example.
      Fields:
        filename - The path to the file being whitelisted (not including the site-packages directory)
        function_name - The name of the function being whitelisted. This value can be set to None to
-             act as a wildcard.
+       act as a wildcard.
        code_fragment - The actual text from the line of code being whitelisted. This value can be
-             set to None to act as a wildcard.
+       set to None to act as a wildcard.
 
 
 **config/known\_errors:** This is a list of known errors that happen. Reporting can be customized to
@@ -102,16 +120,16 @@ N occurences. See file for example.
      Fields:
        filename - The path to the file being whitelisted (not including the site-packages directory)
        function_name - The name of the function being whitelisted. This value can be set to None to
-             act as a wildcard.
+       act as a wildcard.
        code_fragment - The actual text from the line of code being whitelisted. This value can be
-             set to None to act as a wildcard.
+       set to None to act as a wildcard.
        min_alert_threshold - (optional) The minimum number of occurrences before Flawless will
-             report this error.
+       report this error.
        max_alert_threshold - (optional) The maximum number of occurrences before Flawless will
-             stop reporting this error
+       stop reporting this error
        alert_every_n_occurences - (optional) Flawless will report this error every N occurrences
        email_recipients - (optional) List of email addresses to include on error reports for this
-             error
+       error
        email_header - (optional) Extra text to place at the top of emails for this error
 
 
@@ -121,9 +139,9 @@ libraries that should be completely ignored (ex: network connection errors). See
      Fields:
        filename - The path to the file being whitelisted (not including the site-packages directory)
        function_name - The name of the function being whitelisted. This value can be set to None to
-             act as a wildcard.
+       act as a wildcard.
        code_fragment - The actual text from the line of code being whitelisted. This value can be
-             set to None to act as a wildcard
+       set to None to act as a wildcard
 
 
 **config/watched\_files:** This file allows developers to receive all alerts for errors related to
@@ -135,8 +153,8 @@ example.
        email - Email address of the watcher
        filepath - The path to the file being watched
        watch_all_errors - If true, any exception that gets reported and contains this file in it's
-             traceback will be sent to the watcher. If false, the watcher will only receive reports
-             for which a line in the file was actually blamed for causing the error
+       traceback will be sent to the watcher. If false, the watcher will only receive reports
+       for which a line in the file was actually blamed for causing the error
 
 
 **config/email\_remapping:** Remap a developer's email address that is returned by git-blame to
