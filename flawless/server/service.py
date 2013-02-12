@@ -414,7 +414,8 @@ class FlawlessService(object):
       if (known_entry.alert_every_n_occurences and
             err_info.error_count % known_entry.alert_every_n_occurences == 0):
         send_email = True
-      if known_entry.max_alert_threshold and err_info.error_count > known_entry.max_alert_threshold:
+      if (known_entry.max_alert_threshold is not None
+          and err_info.error_count > known_entry.max_alert_threshold):
         send_email = False
 
     # Send email if applicable
