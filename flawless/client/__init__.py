@@ -65,6 +65,13 @@ def record_error(hostname, traceback_list, exception_message,
     pass
 
 
+def _safe_wrap(func):
+  safe_attrs = []
+  for attr in functools.WRAPPER_ASSIGNMENTS:
+    if hasattr(func, attr):
+      safe_attrs.append(attr)
+  return functools.wraps(func, safe_attrs)
+
 def _wrap_function_with_error_decorator(func,
                                         save_current_stack_trace=True,
                                         reraise_exception=True,
@@ -72,7 +79,7 @@ def _wrap_function_with_error_decorator(func,
   current_stack = []
   if save_current_stack_trace:
     current_stack = traceback.extract_stack()
-  @functools.wraps(func)
+  @_safe_wrap(func)
   def wrapped_func_with_error_reporting(*args, **kwargs):
     if not _get_backend_host():
       warnings.warn("flawless server hostport not set", RuntimeWarning, stacklevel=2)
