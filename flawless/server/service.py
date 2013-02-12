@@ -388,7 +388,7 @@ class FlawlessService(object):
       self.errors_seen[key] = err_info
 
     if not err_info:
-      log.warn("Unable to do blame for %s" % str(err_info))
+      log.warn("Unable to do blame for %s" % str(key))
       return
 
     # Figure out if we should send an email or not
