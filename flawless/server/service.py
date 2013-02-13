@@ -162,6 +162,7 @@ class FlawlessService(object):
 
     self.extract_base_path_pattern = re.compile('^.*/%s/?(.*)$' %
                                                 config.report_runtime_package_directory_name)
+    self.only_blame_patterns = [re.compile(p) for p in config.only_blame_filepaths_matching]
 
     self.lock = threading.RLock()
     self.errors_seen = None
@@ -286,11 +287,14 @@ class FlawlessService(object):
       epoch_ms = int(self.time_func() * 1000)
     return cls.fromtimestamp(epoch_ms / 1000.)
 
-  def _matches_path_list(self, filepath, path_list):
-    '''Given a filepath, and a list of filepath fragments, this function returns true
-    if filepath contains any one of those fragments'''
-    for path in path_list:
-      if path and path in filepath:
+  def _matches_filepath_pattern(self, filepath):
+    '''Given a filepath, and a list of regex patterns, this function returns true
+    if filepath matches any one of those patterns'''
+    if not self.only_blame_patterns:
+      return True
+
+    for pattern in self.only_blame_patterns:
+      if pattern.match(filepath):
         return True
     return False
 
@@ -337,11 +341,10 @@ class FlawlessService(object):
       if match:
         filepath = match.group(1)
         entry = StackTraceEntry(filepath, stack_line.function_name, stack_line.text)
-        if (self._matches_path_list(filepath, config.report_exclude_filepaths_containing) and
-            not self._matches_path_list(filepath, config.report_include_filepaths_containing)):
-          continue
-        elif entry in self.third_party_whitelist[filepath]:
+        if entry in self.third_party_whitelist[filepath]:
           return None, None, None
+        elif not self._matches_filepath_pattern(filepath):
+          continue
         elif entry not in self.building_blocks[filepath]:
           blamed_entry = entry
           key = api.ErrorKey(filepath, stack_line.line_number,

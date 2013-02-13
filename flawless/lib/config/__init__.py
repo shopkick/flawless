@@ -46,14 +46,10 @@ OPTIONS = [
                  "Ignore errors occurring in old code that was last modified prior to this date"),
   FlawlessOption("report_error_threshold", 3, int,
                  "Number of times an error should occur before generating an alert"),
-  FlawlessOption("report_exclude_filepaths_containing", "", lambda s: s.split(","),
-                 "When assigning blame to a file, you can explicity prevent blame from "
-                 "getting assigned to files whose filepath matches any pattern on this CSV list"),
-  FlawlessOption("report_include_filepaths_containing", "", lambda s: s.split(","),
-                 "Only use this in conjunction with report_exclude_filepaths_containing. If a "
-                 "file whose filepath matches a pattern on this CSV list, then it will be eligible "
-                 "for being blamed, even if it also matches a parttern on "
-                 "report_exclude_filepaths_containing"),
+  FlawlessOption("only_blame_filepaths_matching", r"^(?!.*\.egg).*$",
+                 lambda s: [e.strip() for e in s.split(",") if e.strip()],
+                 "When assigning blame to a file, you can explicity only blame "
+                 "files whose filepath matches any pattern on this CSV list"),
 
   # Repository info
   FlawlessOption("git_cli_path", "git", str, "Path to the git command line utility"),

@@ -124,8 +124,11 @@ class BaseTestCase(unittest.TestCase):
     self.test_config.repo_dir = "/tmp"
     self.test_config.report_only_after_minimum_date = "2010-01-01"
     self.test_config.report_error_threshold = 1
-    self.test_config.report_exclude_filepaths_containing = ["thrift/", "thirdparty/"]
-    self.test_config.report_include_filepaths_containing = ["lib/thrift/"]
+    self.test_config.only_blame_filepaths_matching = [
+      r"^coreservices(?!.*/thrift/).*$",
+      r"lib/.*",
+      r"tools/.*",
+    ]
     self.test_config.report_runtime_package_directory_name = "site-packages"
     self.test_config.config_dir_path = "../config"
 
