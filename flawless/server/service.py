@@ -27,8 +27,10 @@ import re
 import shutil
 import smtplib
 import subprocess
+import sys
 import threading
 import time
+import traceback
 import urllib
 import urlparse
 
@@ -244,7 +246,7 @@ class FlawlessService(object):
         try:
           task()
         except Exception as e:
-          log.exception(e)
+          self._handle_flawless_issue("<br />".join(traceback.format_exception(*sys.exc_info())))
 
   ############################## Misc Helper Funcs ##############################
 
@@ -256,8 +258,10 @@ class FlawlessService(object):
                          not bool(self.VALIDATE_EMAIL_PATTERN.match(e))]
     if invalid_addresses:
       to_addresses = [e for e in to_addresses if e not in invalid_addresses]
-      log.warning("Invalid email address found. Not sending to: %s" %
-                  ", ".join(invalid_addresses))
+      self._handle_flawless_issue(
+        "Invalid email address found. Not sending to: %s" % ", ".join(invalid_addresses),
+        log_func=log.warning,
+      )
 
     msg = email.MIMEText.MIMEText(body.encode("UTF-8"), "html", "UTF-8")
     msg["From"] = "error_report@%s" % config.email_domain_name
@@ -303,6 +307,11 @@ class FlawlessService(object):
     for e in entry_tree[entry.filename]:
       if entry == e:
         return e
+
+  def _handle_flawless_issue(self, message, log_func=log.error):
+    log_func(message)
+    if config.default_contact:
+      self._sendmail([config.default_contact], "Unexpected problem on Flawless Server", message)
 
   def _format_traceback(self, request, append_additional_info=True,
                         linebreak="<br />", spacer="&nbsp;"):
@@ -391,7 +400,8 @@ class FlawlessService(object):
       self.errors_seen[key] = err_info
 
     if not err_info:
-      log.warn("Unable to do blame for %s" % str(key))
+      self._handle_flawless_issue("Unable to do blame for %s. You may want to consider setting "
+                                  "only_blame_filepaths_matching in your flawless.cfg " % str(key))
       return
 
     # Figure out if we should send an email or not

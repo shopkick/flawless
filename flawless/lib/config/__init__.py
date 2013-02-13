@@ -29,6 +29,9 @@ OPTIONS = [
                  "Version control systems sometimes report bogus email domains, set this if"
                  "the email domain from the version control system should be ignored and if"
                  "email_domain_name should be used instead"),
+  FlawlessOption("default_contact", None, str,
+                 "The default email address to contact for issues when Flawless is unable to "
+                 "determine who to email"),
 
   # SMTP host setup
   FlawlessOption("smtp_host", "localhost:25", str, "The host responsbile for sending email"),

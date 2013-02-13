@@ -46,6 +46,9 @@ def interview(conf_path):
   options["email_domain_name"] = raw_input("What is your email domain (ex: example.com): ").strip()
   options["ignore_vcs_email_domain"] = raw_input("Are all developer emails on %s (y/n): " %
                                                options["email_domain_name"])[0] in ['y', 'Y']
+  options["default_contact"] = raw_input("If Flawless can't figure out which developer to email, "
+                                         "what should be the default email address that Flawless "
+                                         "sends to? ").strip()
 
   print "\nConfigure Directory Paths"
   print   "-------------------------"
