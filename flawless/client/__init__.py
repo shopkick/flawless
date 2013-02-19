@@ -91,7 +91,7 @@ def record_error(hostname, tb, exception_message, preceding_stack=None,
                           data=data.dumps())
     _send_request(req)
   except:
-    pass
+    raise
 
 
 def _safe_wrap(func):
