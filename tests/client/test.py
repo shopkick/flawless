@@ -23,7 +23,7 @@ import flawless.server.api as api
 @flawless.client.decorators.wrap_class
 class ThriftTestHandler(object):
   def __init__(self):
-    pass
+    self.classvar = 99
 
   def method(self, fail=False, result=42):
     return self._simulate_call(fail, result)
@@ -78,6 +78,18 @@ class ClassDecoratorTestCase(BaseErrorsTestCase):
     self.assertTrue(errorFound)
     self.assertEqual(None, req_obj.error_threshold)
 
+  def test_logs_classvars(self):
+    self.assertRaises(Exception, self.handler.method, fail=True)
+    self.assertEquals(1, len(self.req_list))
+    errorFound = False
+    req_obj = api.RecordErrorRequest.loads(self.last_req.get_data())
+    for row in req_obj.traceback:
+      if row.function_name == "_simulate_call":
+        errorFound = True
+        self.assertEquals('99', row.frame_locals['self.classvar'])
+    self.assertTrue(errorFound)
+    self.assertEqual(None, req_obj.error_threshold)
+
 
 class FunctionDecoratorTestCase(BaseErrorsTestCase):
   def setUp(self):
@@ -85,6 +97,7 @@ class FunctionDecoratorTestCase(BaseErrorsTestCase):
 
   @flawless.client.decorators.wrap_function
   def example_func(self, fail=False, retval=None):
+    myvar = 7
     if fail:
       raise Exception(":(")
     return  retval
@@ -118,6 +131,16 @@ class FunctionDecoratorTestCase(BaseErrorsTestCase):
     self.assertTrue(errorFound)
     self.assertEqual(7, req_obj.error_threshold)
 
+  def test_logs_locals(self):
+    self.assertRaises(Exception, self.example_func, fail=True)
+    errorFound = False
+    req_obj = api.RecordErrorRequest.loads(self.last_req.get_data())
+    for row in req_obj.traceback:
+      if row.function_name == "example_func":
+        errorFound = True
+        self.assertEquals('7', row.frame_locals['myvar'])
+    self.assertTrue(errorFound)
+    self.assertEqual(None, req_obj.error_threshold)
 
 
 class FuncThreadStub(object):

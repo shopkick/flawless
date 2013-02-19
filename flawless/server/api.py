@@ -63,6 +63,7 @@ class StackLine(ApiObject):
     ('line_number', int),
     ('function_name', str),
     ('text', str),
+    ('frame_locals', dict),
   ]
 
 

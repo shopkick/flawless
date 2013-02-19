@@ -13,6 +13,7 @@
 import functools
 import threading
 import traceback
+import linecache
 import os.path
 import socket
 import sys
@@ -27,6 +28,9 @@ import flawless.server.api as api
 
 config = flawless.lib.config.get()
 
+MAX_STACK_REPR = 500
+MAX_LOCALS = 100
+NUM_FRAMES_TO_SAVE = 20
 
 def _send_request(req):
   f = urllib2.urlopen(req, timeout=config.client_timeout)
@@ -38,16 +42,41 @@ def _get_backend_host():
 def set_hostport(hostport):
   flawless.client.default.hostport = hostport
 
-def record_error(hostname, traceback_list, exception_message,
+def record_error(hostname, tb, exception_message, preceding_stack=None,
                  error_threshold=None, additional_info=None):
   ''' Helper function to record errors to the flawless backend '''
   try:
+    stack = []
+    while tb is not None:
+      stack.append(tb)
+      tb = tb.tb_next
+
     stack_lines = []
-    for row in traceback_list:
-      # TODO (john): May need to prepend site-packages to row[0] to get correct path
-      abs_path = os.path.abspath(row[0])
+    for row in preceding_stack or []:
       stack_lines.append(
-        api.StackLine(filename=abs_path, line_number=row[1], function_name=row[2], text=row[3])
+        api.StackLine(filename= os.path.abspath(row[0]), line_number=row[1],
+                      function_name=row[2], text=row[3])
+      )
+
+    for index, tb in enumerate(stack):
+      filename = tb.tb_frame.f_code.co_filename
+      func_name = tb.tb_frame.f_code.co_name
+      lineno = tb.tb_lineno
+      line = linecache.getline(filename, lineno, tb.tb_frame.f_globals)
+      frame_locals = None
+      if index >= (len(stack) - NUM_FRAMES_TO_SAVE):
+        # Include some limits on max string length & number of variables to keep things from getting
+        # out of hand
+        frame_locals = dict((k, repr(v)[:MAX_STACK_REPR]) for k,v in
+                            tb.tb_frame.f_locals.items()[:MAX_LOCALS] if k != "self")
+        if "self" in tb.tb_frame.f_locals and hasattr(tb.tb_frame.f_locals["self"], "__dict__"):
+          frame_locals.update(dict(("self." + k, repr(v)[:MAX_STACK_REPR]) for k,v in
+                              tb.tb_frame.f_locals["self"].__dict__.items()[:MAX_LOCALS] if k != "self"))
+
+      # TODO (john): May need to prepend site-packages to filename to get correct path
+      stack_lines.append(
+        api.StackLine(filename=os.path.abspath(filename), line_number=lineno,
+                      function_name=func_name, text=line, frame_locals=frame_locals)
       )
 
     data = api.RecordErrorRequest(
@@ -76,9 +105,10 @@ def _wrap_function_with_error_decorator(func,
                                         save_current_stack_trace=True,
                                         reraise_exception=True,
                                         error_threshold=None):
-  current_stack = []
+  preceding_stack = []
   if save_current_stack_trace:
-    current_stack = traceback.extract_stack()
+    preceding_stack = traceback.extract_stack()
+
   @_safe_wrap(func)
   def wrapped_func_with_error_reporting(*args, **kwargs):
     if not _get_backend_host():
@@ -96,11 +126,11 @@ def _wrap_function_with_error_decorator(func,
           return
 
       # Get trackback & report it
-      traceback_list = traceback.extract_tb(tb)
       hostname = socket.gethostname()
       record_error(
           hostname=hostname,
-          traceback_list=current_stack + traceback_list,
+          tb=tb,
+          preceding_stack=preceding_stack,
           exception_message=repr(value),
           error_threshold=error_threshold)
 

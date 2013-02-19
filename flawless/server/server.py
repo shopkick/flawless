@@ -100,7 +100,7 @@ def main():
   conf_path = flawless.lib.config.default_path
   if len(sys.argv) > 1:
     conf_path = sys.argv[1]
-  serve()
+  serve(conf_path)
 
 
 if __name__ == '__main__':

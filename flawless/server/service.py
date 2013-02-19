@@ -128,6 +128,13 @@ class ThirdPartyWhitelistEntry(CodeIdentifierBaseClass):
     super(ThirdPartyWhitelistEntry, self).__init__(filename, function_name, code_fragment)
 
 
+class LineTypeEnum(object):
+  DEFAULT = 1
+  KNOWN_ERROR = 2
+  BUILDING_BLOCK = 3
+  THIRDPARTY_WHITELIST = 4
+  IGNORED_FILEPATH = 5
+  BAD_FILEPATH = 6
 
 class FlawlessService(object):
   ############################## CONSTANTS ##############################
@@ -313,8 +320,27 @@ class FlawlessService(object):
     if config.default_contact:
       self._sendmail([config.default_contact], "Unexpected problem on Flawless Server", message)
 
-  def _format_traceback(self, request, append_additional_info=True,
+  def _get_line_type(self, line):
+    match = self.extract_base_path_pattern.match(line.filename)
+    if not match:
+      return LineTypeEnum.BAD_FILEPATH
+
+    filepath = match.group(1)
+    entry = StackTraceEntry(filepath, line.function_name, line.text)
+    if entry in self.third_party_whitelist[filepath]:
+      return LineTypeEnum.THIRDPARTY_WHITELIST
+    elif not self._matches_filepath_pattern(filepath):
+      return LineTypeEnum.IGNORED_FILEPATH
+    elif entry in self.building_blocks[filepath]:
+      return LineTypeEnum.BUILDING_BLOCK
+    elif entry in self.known_errors[filepath]:
+      return LineTypeEnum.KNOWN_ERROR
+    else:
+      return LineTypeEnum.DEFAULT
+
+  def _format_traceback(self, request, append_locals=True, show_full_stack=False,
                         linebreak="<br />", spacer="&nbsp;"):
+    # Traceback
     parts = []
     parts.append("Traceback (most recent call last):")
     formatted_stack = [
@@ -327,13 +353,29 @@ class FlawlessService(object):
     parts.extend(formatted_stack)
     parts.append(request.exception_message)
 
-    if append_additional_info and request.additional_info:
-      parts.append(linebreak + "Additional Information:")
+    # Frame Locals
+    parts.append(linebreak * 2 + "Stack Frame:")
+    frames_to_show = [l for l in request.traceback if l.frame_locals is not None and
+                      (self._get_line_type(l) in [LineTypeEnum.KNOWN_ERROR, LineTypeEnum.DEFAULT]
+                       or show_full_stack)]
+    for l in frames_to_show:
+      line_info = '{sp}{sp}File "{filename}", line {line}, in {function}'.format(
+        sp=spacer, filename=l.filename, line=l.line_number, function=l.function_name,
+      )
+      local_vals = ['{sp}{sp}{sp}{sp}{name}={value}'.format(
+                        sp=spacer, name=name, value=value.decode("UTF-8", "replace"))
+                    for name, value in sorted(l.frame_locals.items())]
+      parts.append(line_info)
+      parts.extend(local_vals or [spacer * 4 + "No variables in this frame"])
+
+    # Additional Information
+    if request.additional_info:
+      parts.append(linebreak * 2 + "Additional Information:")
       parts.append(request.additional_info.decode("UTF-8", "replace").replace("\n", linebreak))
 
     return linebreak.join(parts)
 
-  ############################## Public API Funcs ##############################
+  ############################## Record Error ##############################
 
   def record_error(self, request):
       t = self.thread_cls(target=self._record_error, args=[request])
@@ -346,20 +388,17 @@ class FlawlessService(object):
     blamed_entry = None
     email_recipients = []
     for stack_line in traceback:
-      match = self.extract_base_path_pattern.match(stack_line.filename)
-      if match:
-        filepath = match.group(1)
+      line_type = self._get_line_type(stack_line)
+      if line_type == LineTypeEnum.THIRDPARTY_WHITELIST:
+        return None, None, None
+      elif line_type in [LineTypeEnum.DEFAULT, LineTypeEnum.KNOWN_ERROR]:
+        filepath = self.extract_base_path_pattern.match(stack_line.filename).group(1)
         entry = StackTraceEntry(filepath, stack_line.function_name, stack_line.text)
-        if entry in self.third_party_whitelist[filepath]:
-          return None, None, None
-        elif not self._matches_filepath_pattern(filepath):
-          continue
-        elif entry not in self.building_blocks[filepath]:
-          blamed_entry = entry
-          key = api.ErrorKey(filepath, stack_line.line_number,
-                             stack_line.function_name, stack_line.text)
-          if filepath in self.watch_all_errors:
-            email_recipients.extend(self.watch_all_errors[filepath])
+        blamed_entry = entry
+        key = api.ErrorKey(filepath, stack_line.line_number,
+                           stack_line.function_name, stack_line.text)
+        if filepath in self.watch_all_errors:
+          email_recipients.extend(self.watch_all_errors[filepath])
     return (key, blamed_entry, email_recipients)
 
 
@@ -463,6 +502,7 @@ class FlawlessService(object):
       err_info.email_sent = True
       self.errors_seen[key] = err_info
 
+  ############################## Summarize Errors ##############################
 
   def index(self, *args, **kwargs):
     return self.get_weekly_error_report(*args, **kwargs)
@@ -537,6 +577,7 @@ class FlawlessService(object):
       </html>
     """.format(data=datastr)
 
+  ############################## Add New Known Error ##############################
 
   def add_known_error(self, filename="", function_name="", code_fragment=""):
     code_fragment = cgi.escape(code_fragment)

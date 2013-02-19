@@ -34,10 +34,9 @@ class FlawlessMiddleware(object):
       return self.app(environ, start_response)
     except:
       type, value, tb = sys.exc_info()
-      traceback_list = traceback.extract_tb(tb)
       reconstructed_req = self._reconstruct_request(environ)
-      flawless.client.record_error(hostname=self.hostname, traceback_list=traceback_list,
-                                   exception_message=repr(value), additional_info=reconstructed_req)
+      flawless.client.record_error(hostname=self.hostname, tb=tb, exception_message=repr(value),
+                                   additional_info=reconstructed_req)
       raise value, None, tb
 
   def _reconstruct_request(self, environ):
