@@ -42,6 +42,7 @@ setup(
   author='John Egan',
   author_email='john@shopkick.com',
   url='http://github.com/shopkick/flawless',
+  zip_safe=False,
   packages=find_packages(exclude=['ez_setup', 'examples', 'packages', 'tests*']),
   data_files=[('config', [os.path.join('config', f) for f in os.listdir('config')
                           if not f.startswith('.')])],
