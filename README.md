@@ -19,8 +19,8 @@ Why You Should Use Flawless
   * Only emails 1 developer. Flawless uses git-blame to figure out which developer is responsible
     for a particular exception, and will only email that developer.
 
-  * Flawless reports the values of each variable in the stack at the time the exception occurred.
-    This makes debugging ten times faster.
+  * Flawless logs the values of every variable in the stack frame at the time the exception
+    occurred. This makes debugging ten times faster.
 
   * Don't report exceptions in old code. If you set report\_only\_after\_minimum\_date, then
     Flawless will only report exceptions caused by code modified after
