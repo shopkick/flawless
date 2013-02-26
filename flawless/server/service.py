@@ -339,10 +339,11 @@ class FlawlessService(object):
       return LineTypeEnum.DEFAULT
 
   def _format_traceback(self, request, append_locals=True, show_full_stack=False,
-                        linebreak="<br />", spacer="&nbsp;"):
+                        linebreak="<br />", spacer="&nbsp;", start_bold="<strong>",
+                        end_bold="</strong>"):
     # Traceback
     parts = []
-    parts.append("Traceback (most recent call last):")
+    parts.append("{b}Traceback (most recent call last):{xb}".format(b=start_bold, xb=end_bold))
     formatted_stack = [
       '{sp}{sp}File "{filename}", line {line}, in {function}{lb}{sp}{sp}{sp}{sp}{code}'.format(
         sp=spacer, lb=linebreak, filename=l.filename, line=l.line_number,
@@ -354,13 +355,14 @@ class FlawlessService(object):
     parts.append(request.exception_message)
 
     # Frame Locals
-    parts.append(linebreak * 2 + "Stack Frame:")
+    parts.append(linebreak * 2 + "{b}Stack Frame:{xb}".format(b=start_bold, xb=end_bold))
     frames_to_show = [l for l in request.traceback if l.frame_locals is not None and
                       (self._get_line_type(l) in [LineTypeEnum.KNOWN_ERROR, LineTypeEnum.DEFAULT]
                        or show_full_stack)]
     for l in frames_to_show:
-      line_info = '{sp}{sp}File "{filename}", line {line}, in {function}'.format(
+      line_info = '{sp}{sp}{b}File "{filename}", line {line}, in {function}{xb}'.format(
         sp=spacer, filename=l.filename, line=l.line_number, function=l.function_name,
+        b=start_bold, xb=end_bold,
       )
       local_vals = ['{sp}{sp}{sp}{sp}{name}={value}'.format(
                         sp=spacer, name=name, value=value.decode("UTF-8", "replace"))
@@ -370,7 +372,7 @@ class FlawlessService(object):
 
     # Additional Information
     if request.additional_info:
-      parts.append(linebreak * 2 + "Additional Information:")
+      parts.append(linebreak * 2 + "{b}Additional Information:{xb}".format(b=start_bold, xb=end_bold))
       parts.append(request.additional_info.decode("UTF-8", "replace").replace("\n", linebreak))
 
     return linebreak.join(parts)
