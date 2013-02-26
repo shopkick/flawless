@@ -15,6 +15,7 @@ import threading
 import traceback
 import linecache
 import os.path
+import repr as reprlib
 import socket
 import sys
 import urllib2
@@ -67,11 +68,12 @@ def record_error(hostname, tb, exception_message, preceding_stack=None,
       if index >= (len(stack) - NUM_FRAMES_TO_SAVE):
         # Include some limits on max string length & number of variables to keep things from getting
         # out of hand
-        frame_locals = dict((k, repr(v)[:MAX_STACK_REPR]) for k,v in
-                            tb.tb_frame.f_locals.items()[:MAX_LOCALS] if k != "self")
+        frame_locals = dict((k, reprlib.repr(v)[:MAX_STACK_REPR]) for k,v in
+                            tb.tb_frame.f_locals.items()[:MAX_LOCALS] if k != "self" and reprlib.repr(v))
         if "self" in tb.tb_frame.f_locals and hasattr(tb.tb_frame.f_locals["self"], "__dict__"):
-          frame_locals.update(dict(("self." + k, repr(v)[:MAX_STACK_REPR]) for k,v in
-                              tb.tb_frame.f_locals["self"].__dict__.items()[:MAX_LOCALS] if k != "self"))
+          frame_locals.update(dict(("self." + k, reprlib.repr(v)[:MAX_STACK_REPR]) for k,v in
+                              tb.tb_frame.f_locals["self"].__dict__.items()[:MAX_LOCALS]
+                              if k != "self" and reprlib.repr(v)))
 
       # TODO (john): May need to prepend site-packages to filename to get correct path
       stack_lines.append(
@@ -95,10 +97,7 @@ def record_error(hostname, tb, exception_message, preceding_stack=None,
 
 
 def _safe_wrap(func):
-  safe_attrs = []
-  for attr in functools.WRAPPER_ASSIGNMENTS:
-    if hasattr(func, attr):
-      safe_attrs.append(attr)
+  safe_attrs = [attr for attr in functools.WRAPPER_ASSIGNMENTS if hasattr(func, attr)]
   return functools.wraps(func, safe_attrs)
 
 def _wrap_function_with_error_decorator(func,
