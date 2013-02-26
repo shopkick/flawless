@@ -47,6 +47,10 @@ def record_error(hostname, tb, exception_message, preceding_stack=None,
                  error_threshold=None, additional_info=None):
   ''' Helper function to record errors to the flawless backend '''
   try:
+    if not _get_backend_host():
+      warnings.warn("Unable to record error: flawless server hostport not set", RuntimeWarning)
+      return
+
     stack = []
     while tb is not None:
       stack.append(tb)
