@@ -656,8 +656,10 @@ class FlawlessService(object):
     class_map = dict(known_errors=KnownError, building_blocks=BuildingBlock,
                      third_party_whitelist=ThirdPartyWhitelistEntry)
     cls = class_map[params['type']]
+    init_args = inspect.getargspec(CodeIdentifierBaseClass.__init__ if cls == KnownError
+                                   else cls.__init__).args
 
-    whitelist_attrs = [s for s in inspect.getargspec(cls.__init__).args if s != 'self']
+    whitelist_attrs = [s for s in init_args.args if s != 'self']
     new_entry = cls(**dict((k,params.get(k)) for k in whitelist_attrs))
     filename = os.path.join(config.config_dir_path, params['type'])
 
