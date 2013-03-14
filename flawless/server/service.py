@@ -340,19 +340,19 @@ class FlawlessService(object):
 
   def _format_traceback(self, request, append_locals=True, show_full_stack=False,
                         linebreak="<br />", spacer="&nbsp;", start_bold="<strong>",
-                        end_bold="</strong>"):
+                        end_bold="</strong>", escape_func=cgi.escape):
     # Traceback
     parts = []
     parts.append("{b}Traceback (most recent call last):{xb}".format(b=start_bold, xb=end_bold))
     formatted_stack = [
       '{sp}{sp}File "{filename}", line {line}, in {function}{lb}{sp}{sp}{sp}{sp}{code}'.format(
         sp=spacer, lb=linebreak, filename=l.filename, line=l.line_number,
-        function=l.function_name, code=l.text,
+        function=l.function_name, code=escape_func(l.text),
       )
       for l in request.traceback
     ]
     parts.extend(formatted_stack)
-    parts.append(request.exception_message)
+    parts.append(escape_func(request.exception_message))
 
     # Frame Locals
     parts.append(linebreak * 2 + "{b}Stack Frame:{xb}".format(b=start_bold, xb=end_bold))
@@ -365,7 +365,7 @@ class FlawlessService(object):
         b=start_bold, xb=end_bold,
       )
       local_vals = ['{sp}{sp}{sp}{sp}{name}={value}'.format(
-                        sp=spacer, name=name, value=value.decode("UTF-8", "replace"))
+                        sp=spacer, name=name, value=escape_func(value.decode("UTF-8", "replace")))
                     for name, value in sorted(l.frame_locals.items())]
       parts.append(line_info)
       parts.extend(local_vals or [spacer * 4 + "No variables in this frame"])
@@ -373,7 +373,9 @@ class FlawlessService(object):
     # Additional Information
     if request.additional_info:
       parts.append(linebreak * 2 + "{b}Additional Information:{xb}".format(b=start_bold, xb=end_bold))
-      parts.append(request.additional_info.decode("UTF-8", "replace").replace("\n", linebreak))
+      parts.append(
+          escape_func(request.additional_info.decode("UTF-8", "replace").replace("\n", linebreak))
+      )
 
     return linebreak.join(parts)
 
