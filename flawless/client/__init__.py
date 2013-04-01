@@ -63,6 +63,8 @@ def record_error(hostname, tb, exception_message, preceding_stack=None,
                       function_name=row[2], text=row[3])
       )
 
+    myrepr = reprlib.Repr()
+    myrepr.maxother = MAX_STACK_REPR
     for index, tb in enumerate(stack):
       filename = tb.tb_frame.f_code.co_filename
       func_name = tb.tb_frame.f_code.co_name
@@ -72,12 +74,12 @@ def record_error(hostname, tb, exception_message, preceding_stack=None,
       if index >= (len(stack) - NUM_FRAMES_TO_SAVE):
         # Include some limits on max string length & number of variables to keep things from getting
         # out of hand
-        frame_locals = dict((k, reprlib.repr(v)[:MAX_STACK_REPR]) for k,v in
-                            tb.tb_frame.f_locals.items()[:MAX_LOCALS] if k != "self" and reprlib.repr(v))
+        frame_locals = dict((k, myrepr.repr(v)) for k,v in
+                            tb.tb_frame.f_locals.items()[:MAX_LOCALS] if k != "self" and myrepr.repr(v))
         if "self" in tb.tb_frame.f_locals and hasattr(tb.tb_frame.f_locals["self"], "__dict__"):
-          frame_locals.update(dict(("self." + k, reprlib.repr(v)[:MAX_STACK_REPR]) for k,v in
+          frame_locals.update(dict(("self." + k, myrepr.repr(v)) for k,v in
                               tb.tb_frame.f_locals["self"].__dict__.items()[:MAX_LOCALS]
-                              if k != "self" and reprlib.repr(v)))
+                              if k != "self" and myrepr.repr(v)))
 
       # TODO (john): May need to prepend site-packages to filename to get correct path
       stack_lines.append(
