@@ -374,7 +374,7 @@ class FlawlessService(object):
     if request.additional_info:
       parts.append(linebreak * 2 + "{b}Additional Information:{xb}".format(b=start_bold, xb=end_bold))
       parts.append(
-          escape_func(request.additional_info.decode("UTF-8", "replace").replace("\n", linebreak))
+          escape_func(request.additional_info.decode("UTF-8", "replace")).replace("\n", linebreak)
       )
 
     return linebreak.join(parts)
