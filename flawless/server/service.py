@@ -419,20 +419,28 @@ class FlawlessService(object):
     err_info = None
     if key not in self.errors_seen:
       email, last_touched_ts = self.repository.blame(key.filename, key.line_number)
-      if email:
-        cur_time = self._convert_epoch_ms(datetime.datetime).strftime("%Y-%m-%d %H:%M:%S")
-        mod_time = self._convert_epoch_ms(datetime.datetime, epoch_ms=last_touched_ts * 1000)
-        mod_time = mod_time.strftime("%Y-%m-%d %H:%M:%S")
-        known_entry = self._get_entry(blamed_entry, self.known_errors)
-        err_info = api.ErrorInfo(error_count=1,
-                                 developer_email=self._get_email(email),
-                                 date=mod_time,
-                                 email_sent=False,
-                                 last_occurrence=cur_time,
-                                 is_known_error=bool(known_entry),
-                                 last_error_data=request)
-        self.errors_seen[key] = err_info
-        log.info("Error %s caused by %s on %s" % (str(key), email, mod_time))
+      dev_email = self._get_email(email) if email else "unknown"
+      last_touched_ts = last_touched_ts or 0
+
+      cur_time = self._convert_epoch_ms(datetime.datetime).strftime("%Y-%m-%d %H:%M:%S")
+      mod_time = self._convert_epoch_ms(datetime.datetime, epoch_ms=last_touched_ts * 1000)
+      mod_time = mod_time.strftime("%Y-%m-%d %H:%M:%S")
+      known_entry = self._get_entry(blamed_entry, self.known_errors)
+      err_info = api.ErrorInfo(error_count=1,
+                               developer_email=self._get_email(dev_email),
+                               date=mod_time,
+                               email_sent=False,
+                               last_occurrence=cur_time,
+                               is_known_error=bool(known_entry),
+                               last_error_data=request)
+      self.errors_seen[key] = err_info
+      log.info("Error %s caused by %s on %s" % (str(key), dev_email, mod_time))
+
+      if not email:
+        self._handle_flawless_issue("Unable to do blame for %s. You may want to consider setting "
+                                    "only_blame_filepaths_matching in your flawless.cfg " % str(key))
+        err_info.email_sent = True
+        return
     # If we've already seen this error then update the error count
     elif key in self.errors_seen:
       err_info = self.errors_seen[key]
@@ -441,11 +449,6 @@ class FlawlessService(object):
       cur_dt = self._convert_epoch_ms(datetime.datetime)
       err_info.last_occurrence = cur_dt.strftime("%Y-%m-%d %H:%M:%S")
       self.errors_seen[key] = err_info
-
-    if not err_info:
-      self._handle_flawless_issue("Unable to do blame for %s. You may want to consider setting "
-                                  "only_blame_filepaths_matching in your flawless.cfg " % str(key))
-      return
 
     # Figure out if we should send an email or not
     send_email = False
