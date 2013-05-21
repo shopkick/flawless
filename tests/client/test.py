@@ -22,13 +22,19 @@ import flawless.server.api as api
 
 @flawless.client.decorators.wrap_class
 class ThriftTestHandler(object):
+
   def __init__(self):
-    self.classvar = 99
+    self.instancevar = 98
 
   def method(self, fail=False, result=42):
     return self._simulate_call(fail, result)
 
-  def _simulate_call(self, fail=False, result=42):
+  @classmethod
+  def classmeth(cls, fail=False, result=43):
+    return cls._simulate_call(fail, result)
+
+  @classmethod
+  def _simulate_call(cls, fail=False, result=42):
     if fail:
       raise Exception()
 
@@ -67,6 +73,9 @@ class ClassDecoratorTestCase(BaseErrorsTestCase):
   def test_returns_correct_result(self):
     self.assertEquals(56, self.handler.method(result=56))
 
+  def test_returns_correct_result_for_classmethod(self):
+    self.assertEquals(91, ThriftTestHandler.classmeth(result=91))
+
   def test_should_call_flawless_backend_on_exception(self):
     self.assertRaises(Exception, self.handler.method, fail=True)
     self.assertEquals(1, len(self.req_list))
@@ -75,6 +84,8 @@ class ClassDecoratorTestCase(BaseErrorsTestCase):
     for row in req_obj.traceback:
       if row.function_name == "_simulate_call":
         errorFound = True
+      if row.function_name == "method":
+        self.assertEquals('98', row.frame_locals['self.instancevar'])
     self.assertTrue(errorFound)
     self.assertEqual(None, req_obj.error_threshold)
 
@@ -86,7 +97,6 @@ class ClassDecoratorTestCase(BaseErrorsTestCase):
     for row in req_obj.traceback:
       if row.function_name == "_simulate_call":
         errorFound = True
-        self.assertEquals('99', row.frame_locals['self.classvar'])
     self.assertTrue(errorFound)
     self.assertEqual(None, req_obj.error_threshold)
 
