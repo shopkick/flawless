@@ -53,6 +53,8 @@ OPTIONS = [
                  lambda s: [e.strip() for e in s.split(",") if e.strip()],
                  "When assigning blame to a file, you can explicity only blame "
                  "files whose filepath matches any pattern on this CSV list"),
+  FlawlessOption("max_concurrent_git_blames", 10, int,
+                 "The maximum number of git blames that can run at the same time"),
 
   # Repository info
   FlawlessOption("git_cli_path", "git", str, "Path to the git command line utility"),

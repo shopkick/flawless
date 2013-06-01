@@ -159,6 +159,7 @@ class FlawlessService(object):
     self.persistent_dict_cls = persistent_dict_cls
     self.time_func = time_func
     self.thread_cls = thread_cls
+    self.number_of_git_blames_running = 0
 
     self.building_blocks = self._parse_whitelist_file("building_blocks", BuildingBlock)
     self.third_party_whitelist = self._parse_whitelist_file("third_party_whitelist",
@@ -421,8 +422,19 @@ class FlawlessService(object):
     # If this error hasn't been reported before, then find the dev responsible
     err_info = None
     if key not in self.errors_seen:
-      email, last_touched_ts = self.repository.blame(key.filename, key.line_number)
-      dev_email = self._get_email(email) if email else "unknown"
+      # If flawless is being flooded wih errors, limit the number of git blames so the
+      # service doesn't fall over. We don't use a thread safe counter, because 10
+      # git blames is just a soft limit
+      if self.number_of_git_blames_running > config.max_concurrent_git_blames:
+        log.error("Unable to process %s because %d git blames already running" %
+                  (str(key), self.number_of_git_blames_running))
+        return
+      try:
+        self.number_of_git_blames_running += 1
+        email, last_touched_ts = self.repository.blame(key.filename, key.line_number)
+      finally:
+        self.number_of_git_blames_running -= 1
+      dev_email = self._get_email(email)
       last_touched_ts = last_touched_ts or 0
 
       cur_time = self._convert_epoch_ms(datetime.datetime).strftime("%Y-%m-%d %H:%M:%S")
