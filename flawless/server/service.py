@@ -284,6 +284,9 @@ class FlawlessService(object):
     '''Given an email address, check the email_remapping table to see if the email
     should be sent to a different address. This function also handles overriding
     the email domain if ignore_vcs_email_domain is set or the domain was missing'''
+    if not email or "@" not in email:
+      return None
+
     if email in self.email_remapping:
       return self.email_remapping[email]
     prefix, domain = email.split("@", 2)
@@ -427,7 +430,7 @@ class FlawlessService(object):
       mod_time = mod_time.strftime("%Y-%m-%d %H:%M:%S")
       known_entry = self._get_entry(blamed_entry, self.known_errors)
       err_info = api.ErrorInfo(error_count=1,
-                               developer_email=self._get_email(dev_email),
+                               developer_email=dev_email or "unknown",
                                date=mod_time,
                                email_sent=False,
                                last_occurrence=cur_time,
@@ -436,7 +439,7 @@ class FlawlessService(object):
       self.errors_seen[key] = err_info
       log.info("Error %s caused by %s on %s" % (str(key), dev_email, mod_time))
 
-      if not email:
+      if not dev_email:
         self._handle_flawless_issue("Unable to do blame for %s. You may want to consider setting "
                                     "only_blame_filepaths_matching in your flawless.cfg " % str(key))
         err_info.email_sent = True
