@@ -3,6 +3,7 @@ LICENSE
 MANIFEST.in
 PKG-INFO
 README.md
+flawless_daemon.py
 setup.py
 config/building_blocks
 config/email_remapping
