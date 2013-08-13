@@ -495,7 +495,9 @@ class FlawlessService(object):
     # Send email if applicable
     if send_email:
       email_body = []
-      email_recipients.append(self._get_email(err_info.developer_email))
+      dev_email = self._get_email(err_info.developer_email)
+      if dev_email:
+        email_recipients.append(dev_email)
 
       # Add additional recipients that have registered for this error
       if blamed_entry.filename in self.watch_only_if_blamed:
@@ -679,7 +681,7 @@ class FlawlessService(object):
     init_args = inspect.getargspec(CodeIdentifierBaseClass.__init__ if cls == KnownError
                                    else cls.__init__).args
 
-    whitelist_attrs = [s for s in init_args.args if s != 'self']
+    whitelist_attrs = [s for s in init_args if s != 'self']
     new_entry = cls(**dict((k,params.get(k)) for k in whitelist_attrs))
     filename = os.path.join(config.config_dir_path, params['type'])
 
