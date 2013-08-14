@@ -15,7 +15,6 @@ import threading
 import traceback
 import linecache
 import os.path
-import repr as reprlib
 import socket
 import sys
 import urllib2
@@ -29,7 +28,7 @@ import flawless.server.api as api
 
 config = flawless.lib.config.get()
 
-MAX_STACK_REPR = 500
+MAX_VARIABLE_REPR = 250
 MAX_LOCALS = 100
 NUM_FRAMES_TO_SAVE = 20
 
@@ -39,6 +38,10 @@ def _send_request(req):
 
 def _get_backend_host():
   return config.flawless_hostport or flawless.client.default.hostport
+
+def _myrepr(s):
+  repr_str = repr(s)
+  return repr_str[:MAX_VARIABLE_REPR] + "..." * int(len(repr_str) > MAX_VARIABLE_REPR)
 
 def set_hostport(hostport):
   flawless.client.default.hostport = hostport
@@ -63,8 +66,6 @@ def record_error(hostname, tb, exception_message, preceding_stack=None,
                       function_name=row[2], text=row[3])
       )
 
-    myrepr = reprlib.Repr()
-    myrepr.maxother = MAX_STACK_REPR
     for index, tb in enumerate(stack):
       filename = tb.tb_frame.f_code.co_filename
       func_name = tb.tb_frame.f_code.co_name
@@ -74,12 +75,12 @@ def record_error(hostname, tb, exception_message, preceding_stack=None,
       if index >= (len(stack) - NUM_FRAMES_TO_SAVE):
         # Include some limits on max string length & number of variables to keep things from getting
         # out of hand
-        frame_locals = dict((k, myrepr.repr(v)) for k,v in
-                            tb.tb_frame.f_locals.items()[:MAX_LOCALS] if k != "self" and myrepr.repr(v))
+        frame_locals = dict((k, _myrepr(v)) for k,v in
+                            tb.tb_frame.f_locals.items()[:MAX_LOCALS] if k != "self")
         if "self" in tb.tb_frame.f_locals and hasattr(tb.tb_frame.f_locals["self"], "__dict__"):
-          frame_locals.update(dict(("self." + k, myrepr.repr(v)) for k,v in
+          frame_locals.update(dict(("self." + k, _myrepr(v)) for k,v in
                               tb.tb_frame.f_locals["self"].__dict__.items()[:MAX_LOCALS]
-                              if k != "self" and myrepr.repr(v)))
+                              if k != "self"))
 
       # TODO (john): May need to prepend site-packages to filename to get correct path
       stack_lines.append(
