@@ -40,8 +40,11 @@ def _get_backend_host():
   return config.flawless_hostport or flawless.client.default.hostport
 
 def _myrepr(s):
-  repr_str = repr(s)
-  return repr_str[:MAX_VARIABLE_REPR] + "..." * int(len(repr_str) > MAX_VARIABLE_REPR)
+  try:
+    repr_str = repr(s)
+    return repr_str[:MAX_VARIABLE_REPR] + "..." * int(len(repr_str) > MAX_VARIABLE_REPR)
+  except:
+    return "Could not except repr for this field"
 
 def set_hostport(hostport):
   flawless.client.default.hostport = hostport
