@@ -22,7 +22,7 @@ import warnings
 
 import flawless.client.default
 import flawless.lib.config
-import flawless.server.api as api
+import flawless.server.api.ttypes as api_ttypes
 
 
 config = flawless.lib.config.get()
@@ -69,8 +69,8 @@ def record_error(hostname, sys_traceback, exception_message, preceding_stack=Non
         stack_lines = []
         for row in preceding_stack or []:
             stack_lines.append(
-                api.StackLine(filename=os.path.abspath(row[0]), line_number=row[1],
-                              function_name=row[2], text=row[3])
+                api_ttypes.StackLine(filename=os.path.abspath(row[0]), line_number=row[1],
+                                     function_name=row[2], text=row[3])
             )
 
         for index, tb in enumerate(stack):
@@ -91,11 +91,11 @@ def record_error(hostname, sys_traceback, exception_message, preceding_stack=Non
 
             # TODO (john): May need to prepend site-packages to filename to get correct path
             stack_lines.append(
-                api.StackLine(filename=os.path.abspath(filename), line_number=lineno,
-                              function_name=func_name, text=line, frame_locals=frame_locals)
+                api_ttypes.StackLine(filename=os.path.abspath(filename), line_number=lineno,
+                                     function_name=func_name, text=line, frame_locals=frame_locals)
             )
 
-        data = api.RecordErrorRequest(
+        data = api_ttypes.RecordErrorRequest(
             traceback=stack_lines,
             exception_message=exception_message,
             hostname=hostname,

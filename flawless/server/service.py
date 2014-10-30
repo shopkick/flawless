@@ -37,7 +37,7 @@ import flawless.lib.config
 from flawless.lib.data_structures.persistent_dictionary import PersistentDictionary
 from flawless.lib.data_structures import prefix_tree
 from flawless.lib.version_control.repo import get_repository
-from flawless.server import api
+import flawless.server.apis.ttypes as api_ttypes
 
 try:
     import simplejson as json
@@ -127,17 +127,6 @@ class BuildingBlock(CodeIdentifierBaseClass):
 class ThirdPartyWhitelistEntry(CodeIdentifierBaseClass):
     def __init__(self, filename, function_name=None, code_fragment=None):
         super(ThirdPartyWhitelistEntry, self).__init__(filename, function_name, code_fragment)
-
-
-class LineTypeEnum(object):
-    '''Lines falling in BUILDING_BLOCK, IGNORED_FILEPATH, RAISED_EXCEPTION will not get blamed for exceptions'''
-    DEFAULT = 1
-    KNOWN_ERROR = 2
-    BUILDING_BLOCK = 3
-    THIRDPARTY_WHITELIST = 4
-    IGNORED_FILEPATH = 5
-    BAD_FILEPATH = 6
-    RAISED_EXCEPTION = 7
 
 
 class FlawlessService(object):
@@ -259,6 +248,9 @@ class FlawlessService(object):
 
     ############################## Misc Helper Funcs ##############################
 
+    def ping(self):
+        return True
+
     def _sendmail(self, to_addresses, subject, body):
         host, port = config.smtp_host.split(":")
         smtp_client = self.smtp_client_cls(host, int(port))
@@ -327,22 +319,22 @@ class FlawlessService(object):
     def _get_line_type(self, line):
         match = self.extract_base_path_pattern.match(line.filename)
         if not match:
-            return LineTypeEnum.BAD_FILEPATH
+            return api_ttypes.LineType.BAD_FILEPATH
 
         filepath = match.group(1)
         entry = StackTraceEntry(filepath, line.function_name, line.text)
         if entry in self.third_party_whitelist[filepath]:
-            return LineTypeEnum.THIRDPARTY_WHITELIST
+            return api_ttypes.LineType.THIRDPARTY_WHITELIST
         elif not self._matches_filepath_pattern(filepath):
-            return LineTypeEnum.IGNORED_FILEPATH
+            return api_ttypes.LineType.IGNORED_FILEPATH
         elif entry in self.building_blocks[filepath]:
-            return LineTypeEnum.BUILDING_BLOCK
+            return api_ttypes.LineType.BUILDING_BLOCK
         elif entry in self.known_errors[filepath]:
-            return LineTypeEnum.KNOWN_ERROR
+            return api_ttypes.LineType.KNOWN_ERROR
         elif self.raise_exception_pattern.match(line.text):
-            return LineTypeEnum.RAISED_EXCEPTION
+            return api_ttypes.LineType.RAISED_EXCEPTION
         else:
-            return LineTypeEnum.DEFAULT
+            return api_ttypes.LineType.DEFAULT
 
     def _format_traceback(self, request, append_locals=True, show_full_stack=False,
                           linebreak="<br />", spacer="&nbsp;", start_bold="<strong>",
@@ -362,7 +354,7 @@ class FlawlessService(object):
 
         # Frame Locals
         parts.append(linebreak * 2 + "{b}Stack Frame:{xb}".format(b=start_bold, xb=end_bold))
-        types_to_show = [LineTypeEnum.KNOWN_ERROR, LineTypeEnum.DEFAULT, LineTypeEnum.RAISED_EXCEPTION]
+        types_to_show = [api_ttypes.LineType.KNOWN_ERROR, api_ttypes.LineType.DEFAULT, api_ttypes.LineType.RAISED_EXCEPTION]
         frames_to_show = [l for l in request.traceback if l.frame_locals is not None and
                           (self._get_line_type(l) in types_to_show or show_full_stack)]
         for l in frames_to_show:
@@ -393,26 +385,26 @@ class FlawlessService(object):
 
     def _blame_line(self, traceback):
         '''Figures out which line in traceback is to blame for the error.
-        Returns a 3-tuple of (api.ErrorKey, StackTraceEntry, [email recipients])'''
+        Returns a 3-tuple of (api_ttypes.ErrorKey, StackTraceEntry, [email recipients])'''
         key = None
         blamed_entry = None
         email_recipients = []
         for stack_line in traceback:
             line_type = self._get_line_type(stack_line)
-            if line_type == LineTypeEnum.THIRDPARTY_WHITELIST:
+            if line_type == api_ttypes.LineType.THIRDPARTY_WHITELIST:
                 return None, None, None
-            elif line_type in [LineTypeEnum.DEFAULT, LineTypeEnum.KNOWN_ERROR]:
+            elif line_type in [api_ttypes.LineType.DEFAULT, api_ttypes.LineType.KNOWN_ERROR]:
                 filepath = self.extract_base_path_pattern.match(stack_line.filename).group(1)
                 entry = StackTraceEntry(filepath, stack_line.function_name, stack_line.text)
                 blamed_entry = entry
-                key = api.ErrorKey(filepath, stack_line.line_number, stack_line.function_name, stack_line.text)
+                key = api_ttypes.ErrorKey(filepath, stack_line.line_number, stack_line.function_name, stack_line.text)
                 if filepath in self.watch_all_errors:
                     email_recipients.extend(self.watch_all_errors[filepath])
         return (key, blamed_entry, email_recipients)
 
     def _record_error(self, request):
         # Parse request
-        request = api.RecordErrorRequest.loads(request)
+        request = api_ttypes.RecordErrorRequest.loads(request)
 
         # Figure out which line in the stack trace is to blame for the error
         key, blamed_entry, email_recipients = self._blame_line(request.traceback)
@@ -441,13 +433,13 @@ class FlawlessService(object):
             mod_time = self._convert_epoch_ms(datetime.datetime, epoch_ms=last_touched_ts * 1000)
             mod_time = mod_time.strftime("%Y-%m-%d %H:%M:%S")
             known_entry = self._get_entry(blamed_entry, self.known_errors)
-            err_info = api.ErrorInfo(error_count=1,
-                                     developer_email=dev_email or "unknown",
-                                     date=mod_time,
-                                     email_sent=False,
-                                     last_occurrence=cur_time,
-                                     is_known_error=bool(known_entry),
-                                     last_error_data=request)
+            err_info = api_ttypes.ErrorInfo(error_count=1,
+                                            developer_email=dev_email or "unknown",
+                                            date=mod_time,
+                                            email_sent=False,
+                                            last_occurrence=cur_time,
+                                            is_known_error=bool(known_entry),
+                                            last_error_data=request)
             self.errors_seen[key] = err_info
             log.info("Error %s caused by %s on %s" % (str(key), dev_email, mod_time))
 
@@ -585,8 +577,8 @@ class FlawlessService(object):
             report.open()
             errdict = report.dict
 
-        err_key = api.ErrorKey(filename=filename, function_name=function_name,
-                               text=text, line_number=line_number)
+        err_key = api_ttypes.ErrorKey(filename=filename, function_name=function_name,
+                                      text=text, line_number=line_number)
         err_info = errdict.get(err_key)
         datastr = "Not Found"
         if err_info:
