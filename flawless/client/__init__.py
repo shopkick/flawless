@@ -43,7 +43,7 @@ def _get_service():
     hostport = _get_backend_host()
     if not hostport:
         warnings.warn("Unable to record error: flawless server hostport not set", RuntimeWarning)
-        return
+        return None, None
 
     host, port = hostport.split(":")
     tsocket = TSocket.TSocket(host, int(port))
@@ -111,9 +111,11 @@ def record_error(hostname, sys_traceback, exception_message, preceding_stack=Non
             error_threshold=error_threshold,
             additional_info=additional_info,
         )
+
         client, transport = _get_service()
-        client.record_error(req)
-        transport.close()
+        if client and transport:
+            client.record_error(req)
+            transport.close()
     except:
         raise
 

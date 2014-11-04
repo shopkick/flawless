@@ -268,7 +268,9 @@ class FlawlessServiceBaseClass(object):
 
         # Frame Locals
         parts.append(linebreak * 2 + "{b}Stack Frame:{xb}".format(b=start_bold, xb=end_bold))
-        types_to_show = [api_ttypes.LineType.KNOWN_ERROR, api_ttypes.LineType.DEFAULT, api_ttypes.LineType.RAISED_EXCEPTION]
+        types_to_show = [api_ttypes.LineType.KNOWN_ERROR,
+                         api_ttypes.LineType.DEFAULT,
+                         api_ttypes.LineType.RAISED_EXCEPTION]
         frames_to_show = [l for l in request.traceback if l.frame_locals is not None and
                           (self._get_line_type(l) in types_to_show or show_full_stack)]
         for l in frames_to_show:
@@ -295,6 +297,8 @@ class FlawlessServiceBaseClass(object):
 ############################## THRIFT SERVICE ##############################
 
 class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
+    """Handler for Thrift server API"""
+
     ############################## CONSTANTS ##############################
 
     # Validates that email address is valid. Does not attempt to be RFC compliant
@@ -309,6 +313,7 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
 
     def __init__(self, *args, **kwargs):
         super(FlawlessThriftServiceHandler, self).__init__(*args, **kwargs)
+        print "-" * 50
         self.number_of_git_blames_running = 0
         self.email_remapping = dict((e["remap"], e["to"]) for e in self._read_json_file("email_remapping"))
         self.watch_all_errors, self.watch_only_if_blamed = self._parse_watchers_file("watched_files")
@@ -412,6 +417,8 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
     ############################## Record Error ##############################
 
     def record_error(self, request):
+            print "*" * 50
+            print request
             t = self.thread_cls(target=self._record_error, args=[request])
             t.start()
 
@@ -552,6 +559,7 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
 ############################## WEB SERVICE ##############################
 
 class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
+    """Handler for HTTP server to show state of the Flawless service"""
 
     def __init__(self, *args, **kwargs):
         super(FlawlessWebServiceHandler, self).__init__(*args, **kwargs)

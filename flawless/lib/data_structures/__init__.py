@@ -13,12 +13,13 @@
 import functools
 import new
 
+
 class ProxyContainerMethodsMetaClass(type):
-  def __init__(cls, name, bases, dct):
-    func_names_to_proxy = set(['__setitem__', '__getitem__', '__delitem__', '__contains__',
-                               '__iter__', '__len__'])
-    for attr in func_names_to_proxy:
-      if not hasattr(cls, attr):
-        func = functools.partial(dct['_proxyfunc_'], attr)
-        setattr(cls, attr, new.instancemethod(func, None, cls))
-    return super(ProxyContainerMethodsMetaClass, cls).__init__(name, bases, dct)
+    def __init__(cls, name, bases, dct):
+        func_names_to_proxy = set(['__setitem__', '__getitem__', '__delitem__', '__contains__',
+                                   '__iter__', '__len__'])
+        for attr in func_names_to_proxy:
+            if not hasattr(cls, attr):
+                func = functools.partial(dct['_proxyfunc_'], attr)
+                setattr(cls, attr, new.instancemethod(func, None, cls))
+        return super(ProxyContainerMethodsMetaClass, cls).__init__(name, bases, dct)
