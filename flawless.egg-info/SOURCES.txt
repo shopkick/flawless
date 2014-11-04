@@ -4,6 +4,7 @@ MANIFEST.in
 PKG-INFO
 README.md
 flawless_daemon.py
+requirements.txt
 setup.py
 config/building_blocks
 config/email_remapping
@@ -33,12 +34,15 @@ flawless/lib/data_structures/stubs.py
 flawless/lib/version_control/__init__.py
 flawless/lib/version_control/repo.py
 flawless/server/__init__.py
-flawless/server/api.py
 flawless/server/configure_server.py
 flawless/server/manage.py
 flawless/server/server.py
 flawless/server/service.py
 flawless/server/stub.py
+flawless/server/api/Flawless.py
+flawless/server/api/__init__.py
+flawless/server/api/constants.py
+flawless/server/api/ttypes.py
 tests/__init__.py
 tests/run.py
 tests/client/__init__.py
