@@ -12,13 +12,21 @@
 
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 import logging
+import os
 import os.path
 from SocketServer import ThreadingMixIn
 import sys
 import urlparse
 
+from thrift.protocol import TBinaryProtocol
+from thrift.server import TServer
+from thrift.transport import TSocket
+from thrift.transport import TTransport
+
 import flawless.lib.config
-from flawless.server.service import FlawlessService
+from flawless.server.api import Flawless
+from flawless.server.service import FlawlessThriftServiceHandler
+from flawless.server.service import FlawlessWebServiceHandler
 
 log = logging.getLogger(__name__)
 config = flawless.lib.config.get()
@@ -30,7 +38,6 @@ class SimpleThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
     def server_close(self):
         HTTPServer.server_close(self)
-        self.service.errors_seen.sync()
 
 
 class SimpleRequestHTTPHandler(BaseHTTPRequestHandler):
@@ -85,15 +92,31 @@ def serve(conf_path):
     if not os.path.exists(config.data_dir_path):
         os.makedirs(config.data_dir_path)
 
-    logging.basicConfig(level=getattr(logging, config.log_level), filename=config.log_file, stream=sys.stderr)
-    flawless_service = FlawlessService()
-    server = SimpleThreadedHTTPServer(('', config.port), SimpleRequestHTTPHandler)
-    server.attach_service(flawless_service)
-    server.request_queue_size = 50
-    try:
-        server.serve_forever()
-    except KeyboardInterrupt:
-        server.server_close()
+    if os.fork() == 0:
+        # Setup HTTP server
+        logging.basicConfig(level=getattr(logging, config.log_level), filename=config.log_file, stream=sys.stderr)
+        handler = FlawlessWebServiceHandler()
+        server = SimpleThreadedHTTPServer(('', config.http_port), SimpleRequestHTTPHandler)
+        server.attach_service(handler)
+        server.request_queue_size = 50
+
+        try:
+            server.serve_forever()
+        except (KeyboardInterrupt, SystemExit):
+            server.server_close()
+    else:
+        # Setup Thrift server
+        handler = FlawlessThriftServiceHandler()
+        processor = Flawless.Processor(handler)
+        transport = TSocket.TServerSocket(port=config.port)
+        tfactory = TTransport.TFramedTransportFactory()
+        pfactory = TBinaryProtocol.TBinaryProtocolFactory()
+        server = TServer.TThreadedServer(processor, transport, tfactory, pfactory)
+        try:
+            server.serve()
+        except (KeyboardInterrupt, SystemExit):
+            handler.errors_seen.sync()
+            transport.close()
 
 
 def main():

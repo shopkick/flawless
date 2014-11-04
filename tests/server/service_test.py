@@ -130,7 +130,7 @@ class BaseTestCase(unittest.TestCase):
         self.test_config.report_runtime_package_directory_name = "site-packages"
         self.test_config.config_dir_path = "../config"
 
-        self.handler = FlawlessService(
+        self.handler = FlawlessThriftServiceHandler(
             open_process_func=self.popen_stub,
             persistent_dict_cls=PersistentDictionaryStub,
             smtp_client_cls=self.smtp_stub,
@@ -186,9 +186,9 @@ class RecordErrorTestCase(BaseTestCase):
             hostname="localhost",
         )
 
-        self.handler.record_error(req.dumps())
+        self.handler.record_error(req)
         self.assertDictEquals({
-            api_ttypes.ErrorKey("coreservices/service.py", 7, "serve", "..."): api_ttypes.ErrorInfo(
+            ErrorKey("coreservices/service.py", 7, "serve", "..."): api_ttypes.ErrorInfo(
                 1, "wishbone@shopkick.com", "2017-07-30 00:00:00", True, "2020-01-01 00:00:00",
                 is_known_error=False, last_error_data=req)},
             self.handler.errors_seen.dict)
@@ -210,9 +210,9 @@ class RecordErrorTestCase(BaseTestCase):
             hostname="localhost",
         )
 
-        self.handler.record_error(req.dumps())
+        self.handler.record_error(req)
         self.assertDictEquals({
-            api_ttypes.ErrorKey("coreservices/thrift_file.py", 7, "serve", "..."): api_ttypes.ErrorInfo(
+            ErrorKey("coreservices/thrift_file.py", 7, "serve", "..."): api_ttypes.ErrorInfo(
                 1, "wishbone@shopkick.com", "2017-07-30 00:00:00", True, "2020-01-01 00:00:00",
                 is_known_error=False, last_error_data=req)},
             self.handler.errors_seen.dict)
@@ -225,7 +225,7 @@ class RecordErrorTestCase(BaseTestCase):
             hostname="localhost",
         )
 
-        self.handler.record_error(req.dumps())
+        self.handler.record_error(req)
         self.assertDictEquals({}, self.handler.errors_seen.dict)
 
     def test_doesnt_report_errors_under_threshold(self):
@@ -238,9 +238,9 @@ class RecordErrorTestCase(BaseTestCase):
             hostname="localhost",
         )
 
-        self.handler.record_error(req.dumps())
+        self.handler.record_error(req)
         self.assertDictEquals({
-            api_ttypes.ErrorKey("coreservices/service.py", 7, "serve", "..."): api_ttypes.ErrorInfo(
+            ErrorKey("coreservices/service.py", 7, "serve", "..."): api_ttypes.ErrorInfo(
                 1, "wishbone@shopkick.com", "2017-07-30 00:00:00", False, "2020-01-01 00:00:00",
                 is_known_error=False, last_error_data=req)},
             self.handler.errors_seen.dict)
@@ -257,7 +257,7 @@ class RecordErrorTestCase(BaseTestCase):
             error_threshold=1,
         )
 
-        self.handler.record_error(req.dumps())
+        self.handler.record_error(req)
 
         self.assertEmailEquals(dict(to_addresses=["wishbone@shopkick.com"],
                                     from_address="error_report@example.com",
@@ -284,7 +284,7 @@ class RecordErrorTestCase(BaseTestCase):
             hostname="localhost",
         )
 
-        self.handler.record_error(req.dumps())
+        self.handler.record_error(req)
 
         # The 2 red alert recipients plus the developer responsible
         self.assertEmailEquals(dict(to_addresses=["wilfred@shopkick.com", "wishbone@shopkick.com",
@@ -310,7 +310,7 @@ class RecordErrorTestCase(BaseTestCase):
             error_threshold=1,
         )
 
-        self.handler.record_error(req.dumps())
+        self.handler.record_error(req)
         self.assertEmailEquals(dict(to_addresses=["wilfred@shopkick.com", "wishbone@shopkick.com", "lassie@shopkick.com"],
                                     from_address="error_report@example.com",
                                     cc_address=None,
@@ -339,7 +339,7 @@ class RecordErrorTestCase(BaseTestCase):
             additional_info="extra stuff",
         )
 
-        self.handler.record_error(req.dumps())
+        self.handler.record_error(req)
 
         self.assertEmailEquals(dict(to_addresses=["snoopy@shopkick.com",
                                                   "wilfred@shopkick.com",
@@ -369,7 +369,7 @@ class RecordErrorTestCase(BaseTestCase):
             error_threshold=1,
         )
 
-        self.handler.record_error(req.dumps())
+        self.handler.record_error(req)
 
         self.assertEmailEquals(dict(to_addresses=["wishbone@shopkick.com"],
                                     from_address="error_report@example.com",
@@ -397,9 +397,9 @@ class RecordErrorTestCase(BaseTestCase):
             % int(time.mktime(datetime.datetime(2009, 7, 30).timetuple()))
         )
 
-        self.handler.record_error(req.dumps())
+        self.handler.record_error(req)
         self.assertDictEquals({
-            api_ttypes.ErrorKey("coreservices/service.py", 7, "serve", "..."): api_ttypes.ErrorInfo(
+            ErrorKey("coreservices/service.py", 7, "serve", "..."): api_ttypes.ErrorInfo(
                 1, "wishbone@shopkick.com", "2009-07-30 00:00:00", False,
                 "2020-01-01 00:00:00", is_known_error=False, last_error_data=req)},
             self.handler.errors_seen.dict)
@@ -413,12 +413,12 @@ class RecordErrorTestCase(BaseTestCase):
             exception_message="email text",
             hostname="localhost",
         )
-        self.handler.record_error(req.dumps())
+        self.handler.record_error(req)
         self._set_stub_time(datetime.datetime(2020, 1, 2))
-        self.handler.record_error(req.dumps())
+        self.handler.record_error(req)
 
         self.assertDictEquals({
-            api_ttypes.ErrorKey("coreservices/service.py", 7, "serve", "..."): api_ttypes.ErrorInfo(
+            ErrorKey("coreservices/service.py", 7, "serve", "..."): api_ttypes.ErrorInfo(
                 2, "wishbone@shopkick.com", "2017-07-30 00:00:00", True, "2020-01-02 00:00:00",
                 is_known_error=False, last_error_data=req)},
             self.handler.errors_seen.dict)
@@ -432,15 +432,15 @@ class RecordErrorTestCase(BaseTestCase):
             exception_message="email text",
             hostname="localhost",
         )
-        self.handler.record_error(req.dumps())
+        self.handler.record_error(req)
 
         self.assertDictEquals({
-            api_ttypes.ErrorKey("lib/doghouse/authentication.py", 7, "check_auth",
-                                'raise errors.BadAuthenticationError("Something smells off...")'
-                                ): api_ttypes.ErrorInfo(1, "wishbone@shopkick.com", "2017-07-30 00:00:00",
-                                                        False, "2020-01-01 00:00:00", is_known_error=True,
-                                                        last_error_data=req)},
-                              self.handler.errors_seen.dict)
+            ErrorKey("lib/doghouse/authentication.py", 7, "check_auth",
+                     'raise errors.BadAuthenticationError("Something smells off...")'
+                     ): api_ttypes.ErrorInfo(1, "wishbone@shopkick.com", "2017-07-30 00:00:00",
+                                             False, "2020-01-01 00:00:00", is_known_error=True,
+                                             last_error_data=req)},
+            self.handler.errors_seen.dict)
         self.assertEquals(None, self.smtp_stub.last_args)
 
     def test_ignores_third_party_whitelisted_errors(self):
@@ -455,7 +455,7 @@ class RecordErrorTestCase(BaseTestCase):
             exception_message="email text",
             hostname="localhost",
         )
-        self.handler.record_error(req.dumps())
+        self.handler.record_error(req)
         self.assertDictEquals({}, self.handler.errors_seen.dict)
 
     def test_ignores_third_party_whitelisted_errors_for_facebook(self):
@@ -468,7 +468,7 @@ class RecordErrorTestCase(BaseTestCase):
             exception_message="email text",
             hostname="localhost",
         )
-        self.handler.record_error(req.dumps())
+        self.handler.record_error(req)
         self.assertDictEquals({}, self.handler.errors_seen.dict)
 
     def test_traces_up_stack_trace_for_errors_originating_from_building_blocks(self):
@@ -481,10 +481,10 @@ class RecordErrorTestCase(BaseTestCase):
             exception_message="email text",
             hostname="localhost",
         )
-        self.handler.record_error(req.dumps())
+        self.handler.record_error(req)
 
         self.assertDictEquals({
-            api_ttypes.ErrorKey("coreservices/service.py", 7, "serve", "..."): api_ttypes.ErrorInfo(
+            ErrorKey("coreservices/service.py", 7, "serve", "..."): api_ttypes.ErrorInfo(
                 1, "wishbone@shopkick.com", "2017-07-30 00:00:00", True, "2020-01-01 00:00:00",
                 is_known_error=False, last_error_data=req)},
             self.handler.errors_seen.dict)

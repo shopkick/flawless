@@ -16,13 +16,16 @@ import linecache
 import os.path
 import socket
 import sys
-import urllib2
 import warnings
 
+from thrift.transport import TTransport
+from thrift.transport import TSocket
+from thrift.protocol import TBinaryProtocol
 
 import flawless.client.default
 import flawless.lib.config
 import flawless.server.api.ttypes as api_ttypes
+from flawless.server.api import Flawless
 
 
 config = flawless.lib.config.get()
@@ -32,13 +35,23 @@ MAX_LOCALS = 100
 NUM_FRAMES_TO_SAVE = 20
 
 
-def _send_request(req):
-    f = urllib2.urlopen(req, timeout=config.client_timeout)
-    f.close()
-
-
 def _get_backend_host():
     return config.flawless_hostport or flawless.client.default.hostport
+
+
+def _get_service():
+    hostport = _get_backend_host()
+    if not hostport:
+        warnings.warn("Unable to record error: flawless server hostport not set", RuntimeWarning)
+        return
+
+    host, port = hostport.split(":")
+    tsocket = TSocket.TSocket(host, int(port))
+    transport = TTransport.TFramedTransport(tsocket)
+    protocol = TBinaryProtocol.TBinaryProtocol(transport)
+    client = Flawless.Client(protocol)
+    transport.open()
+    return client, transport
 
 
 def _myrepr(s):
@@ -57,10 +70,6 @@ def record_error(hostname, sys_traceback, exception_message, preceding_stack=Non
                  error_threshold=None, additional_info=None):
     ''' Helper function to record errors to the flawless backend '''
     try:
-        if not _get_backend_host():
-            warnings.warn("Unable to record error: flawless server hostport not set", RuntimeWarning)
-            return
-
         stack = []
         while sys_traceback is not None:
             stack.append(sys_traceback)
@@ -95,16 +104,16 @@ def record_error(hostname, sys_traceback, exception_message, preceding_stack=Non
                                      function_name=func_name, text=line, frame_locals=frame_locals)
             )
 
-        data = api_ttypes.RecordErrorRequest(
+        req = api_ttypes.RecordErrorRequest(
             traceback=stack_lines,
             exception_message=exception_message,
             hostname=hostname,
             error_threshold=error_threshold,
             additional_info=additional_info,
         )
-
-        req = urllib2.Request(url="http://%s/record_error" % _get_backend_host(), data=data.dumps())
-        _send_request(req)
+        client, transport = _get_service()
+        client.record_error(req)
+        transport.close()
     except:
         raise
 

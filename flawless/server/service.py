@@ -37,7 +37,7 @@ import flawless.lib.config
 from flawless.lib.data_structures.persistent_dictionary import PersistentDictionary
 from flawless.lib.data_structures import prefix_tree
 from flawless.lib.version_control.repo import get_repository
-import flawless.server.apis.ttypes as api_ttypes
+import flawless.server.api.ttypes as api_ttypes
 
 try:
     import simplejson as json
@@ -49,13 +49,18 @@ log = logging.getLogger(__name__)
 config = flawless.lib.config.get()
 
 
-def dump_json(obj):
-    return json.dumps(
-        obj,
-        indent=2,
-        separators=(',', ': '),
-        default=lambda o: dict((k, v) for k, v in o.__dict__.items() if v is not None),
-    )
+############################## HELPER DATA STRUCTURES ##############################
+
+class ErrorKey(object):
+
+    def __init__(self, filename, line_number, function_name, text):
+        self.__dict__.update((k, v) for k, v in locals().items() if k != 'self')
+
+    def __hash__(self):
+        return reduce(lambda x, y: x ^ hash(y), self.__dict__.iteritems(), 1)
+
+    def __eq__(self, other):
+        return type(self) == type(other) and self.__dict__ == other.__dict__
 
 
 class CodeIdentifierBaseClass(object):
@@ -129,50 +134,41 @@ class ThirdPartyWhitelistEntry(CodeIdentifierBaseClass):
         super(ThirdPartyWhitelistEntry, self).__init__(filename, function_name, code_fragment)
 
 
-class FlawlessService(object):
-    ############################## CONSTANTS ##############################
+############################## GLOBAL HELPER FUNCTIONS ##############################
 
-    # Validates that email address is valid. Does not attempt to be RFC compliant
-    #     local part: any alphanumeric or ., %, +, \, -, _
-    #     domain part: any alphanumeric. Dashes or periods allowed as long as they are not followed
-    #                                by a period
-    #     top level domain: between 2 to 4 alpha chracters
-    VALIDATE_EMAIL_PATTERN = \
-        re.compile(r"^[A-Za-z0-9.%+\-_]+@(?:(?:[a-zA-Z0-9]+-?)*[a-zA-Z0-9]\.)+[A-Za-z]{2,4}$")
 
-    ############################## Init ##############################
+def dump_json(obj):
+    return json.dumps(
+        obj,
+        indent=2,
+        separators=(',', ': '),
+        default=lambda o: dict((k, v) for k, v in o.__dict__.items() if v is not None),
+    )
+
+
+############################## BASE SERVICE CLASS ##############################
+
+class FlawlessServiceBaseClass(object):
+    """Contains numerous shared helper functions for the ThriftService & WebService classes"""
 
     def __init__(self, persistent_dict_cls=PersistentDictionary,
                  thread_cls=threading.Thread,
                  open_file_func=open, open_process_func=subprocess.Popen,
                  smtp_client_cls=smtplib.SMTP, time_func=time.time):
+        self.persistent_dict_cls = persistent_dict_cls
+        self.thread_cls = thread_cls
         self.open_file_func = open_file_func
         self.open_process_func = open_process_func
         self.smtp_client_cls = smtp_client_cls
-        self.persistent_dict_cls = persistent_dict_cls
         self.time_func = time_func
-        self.thread_cls = thread_cls
-        self.number_of_git_blames_running = 0
 
         self.building_blocks = self._parse_whitelist_file("building_blocks", BuildingBlock)
         self.third_party_whitelist = self._parse_whitelist_file("third_party_whitelist", ThirdPartyWhitelistEntry)
         self.known_errors = self._parse_whitelist_file("known_errors", KnownError)
-        self.email_remapping = dict((e["remap"], e["to"]) for e in self._read_json_file("email_remapping"))
-        self.watch_all_errors, self.watch_only_if_blamed = self._parse_watchers_file("watched_files")
-
-        self.repository = get_repository(open_process_func=open_process_func)
 
         self.extract_base_path_pattern = re.compile('^.*/%s/?(.*)$' % config.report_runtime_package_directory_name)
         self.raise_exception_pattern = re.compile('^\s*raise[ \n]')
         self.only_blame_patterns = [re.compile(p) for p in config.only_blame_filepaths_matching]
-
-        self.lock = threading.RLock()
-        self.errors_seen = None
-        self._refresh_errors_seen()
-
-        self.persist_thread = self.thread_cls(target=self._run_background_update_thread)
-        self.persist_thread.daemon = True
-        self.persist_thread.start()
 
     ############################## Parse Config Files ##############################
 
@@ -208,13 +204,126 @@ class FlawlessService(object):
 
         return all_error_tree, blame_only_tree
 
-    ############################## Update Thread ##############################
+    ############################## Timestamp Helpers ##############################
 
     def _file_path_for_ms(self, epoch_ms):
         timestamp_date = self._convert_epoch_ms(cls=datetime.date, epoch_ms=epoch_ms)
         timestamp_date = timestamp_date - datetime.timedelta(days=timestamp_date.isoweekday() % 7)
         file_path = os.path.join(config.data_dir_path, "flawless-errors-" + timestamp_date.strftime("%Y-%m-%d"))
         return file_path
+
+    def _convert_epoch_ms(self, cls, epoch_ms=None):
+        if not epoch_ms:
+            epoch_ms = int(self.time_func() * 1000)
+        return cls.fromtimestamp(epoch_ms / 1000.)
+
+    ############################## Traceback/Line Type Helpers ##############################
+
+    def _get_line_type(self, line):
+        match = self.extract_base_path_pattern.match(line.filename)
+        if not match:
+            return api_ttypes.LineType.BAD_FILEPATH
+
+        filepath = match.group(1)
+        entry = StackTraceEntry(filepath, line.function_name, line.text)
+        if entry in self.third_party_whitelist[filepath]:
+            return api_ttypes.LineType.THIRDPARTY_WHITELIST
+        elif not self._matches_filepath_pattern(filepath):
+            return api_ttypes.LineType.IGNORED_FILEPATH
+        elif entry in self.building_blocks[filepath]:
+            return api_ttypes.LineType.BUILDING_BLOCK
+        elif entry in self.known_errors[filepath]:
+            return api_ttypes.LineType.KNOWN_ERROR
+        elif self.raise_exception_pattern.match(line.text):
+            return api_ttypes.LineType.RAISED_EXCEPTION
+        else:
+            return api_ttypes.LineType.DEFAULT
+
+    def _matches_filepath_pattern(self, filepath):
+        '''Given a filepath, and a list of regex patterns, this function returns true
+        if filepath matches any one of those patterns'''
+        if not self.only_blame_patterns:
+            return True
+
+        for pattern in self.only_blame_patterns:
+            if pattern.match(filepath):
+                return True
+        return False
+
+    def _format_traceback(self, request, append_locals=True, show_full_stack=False,
+                          linebreak="<br />", spacer="&nbsp;", start_bold="<strong>",
+                          end_bold="</strong>", escape_func=cgi.escape):
+        # Traceback
+        parts = []
+        parts.append("{b}Traceback (most recent call last):{xb}".format(b=start_bold, xb=end_bold))
+        formatted_stack = [
+            '{sp}{sp}File "{filename}", line {line}, in {function}{lb}{sp}{sp}{sp}{sp}{code}'.format(
+                sp=spacer, lb=linebreak, filename=l.filename, line=l.line_number,
+                function=l.function_name, code=escape_func(l.text),
+            )
+            for l in request.traceback
+        ]
+        parts.extend(formatted_stack)
+        parts.append(escape_func(request.exception_message))
+
+        # Frame Locals
+        parts.append(linebreak * 2 + "{b}Stack Frame:{xb}".format(b=start_bold, xb=end_bold))
+        types_to_show = [api_ttypes.LineType.KNOWN_ERROR, api_ttypes.LineType.DEFAULT, api_ttypes.LineType.RAISED_EXCEPTION]
+        frames_to_show = [l for l in request.traceback if l.frame_locals is not None and
+                          (self._get_line_type(l) in types_to_show or show_full_stack)]
+        for l in frames_to_show:
+            line_info = '{sp}{sp}{b}File "{filename}", line {line}, in {function}{xb}'.format(
+                sp=spacer, filename=l.filename, line=l.line_number, function=l.function_name,
+                b=start_bold, xb=end_bold,
+            )
+            local_vals = ['{sp}{sp}{sp}{sp}{name}={value}'.format(
+                          sp=spacer, name=name, value=escape_func(value.decode("UTF-8", "replace")))
+                          for name, value in sorted(l.frame_locals.items())]
+            parts.append(line_info)
+            parts.extend(local_vals or [spacer * 4 + "No variables in this frame"])
+
+        # Additional Information
+        if request.additional_info:
+            parts.append(linebreak * 2 + "{b}Additional Information:{xb}".format(b=start_bold, xb=end_bold))
+            parts.append(
+                escape_func(request.additional_info.decode("UTF-8", "replace")).replace("\n", linebreak)
+            )
+
+        return linebreak.join(parts)
+
+
+############################## THRIFT SERVICE ##############################
+
+class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
+    ############################## CONSTANTS ##############################
+
+    # Validates that email address is valid. Does not attempt to be RFC compliant
+    #     local part: any alphanumeric or ., %, +, \, -, _
+    #     domain part: any alphanumeric. Dashes or periods allowed as long as they are not followed
+    #                                by a period
+    #     top level domain: between 2 to 4 alpha chracters
+    VALIDATE_EMAIL_PATTERN = \
+        re.compile(r"^[A-Za-z0-9.%+\-_]+@(?:(?:[a-zA-Z0-9]+-?)*[a-zA-Z0-9]\.)+[A-Za-z]{2,4}$")
+
+    ############################## Init ##############################
+
+    def __init__(self, *args, **kwargs):
+        super(FlawlessThriftServiceHandler, self).__init__(*args, **kwargs)
+        self.number_of_git_blames_running = 0
+        self.email_remapping = dict((e["remap"], e["to"]) for e in self._read_json_file("email_remapping"))
+        self.watch_all_errors, self.watch_only_if_blamed = self._parse_watchers_file("watched_files")
+
+        self.repository = get_repository(open_process_func=self.open_process_func)
+
+        self.lock = threading.RLock()
+        self.errors_seen = None
+        self._refresh_errors_seen()
+
+        self.persist_thread = self.thread_cls(target=self._run_background_update_thread)
+        self.persist_thread.daemon = True
+        self.persist_thread.start()
+
+    ############################## Update Thread ##############################
 
     def _refresh_errors_seen(self, epoch_ms=None):
         file_path = self._file_path_for_ms(epoch_ms)
@@ -289,22 +398,6 @@ class FlawlessService(object):
             return "%s@%s" % (prefix, config.email_domain_name)
         return email
 
-    def _convert_epoch_ms(self, cls, epoch_ms=None):
-        if not epoch_ms:
-            epoch_ms = int(self.time_func() * 1000)
-        return cls.fromtimestamp(epoch_ms / 1000.)
-
-    def _matches_filepath_pattern(self, filepath):
-        '''Given a filepath, and a list of regex patterns, this function returns true
-        if filepath matches any one of those patterns'''
-        if not self.only_blame_patterns:
-            return True
-
-        for pattern in self.only_blame_patterns:
-            if pattern.match(filepath):
-                return True
-        return False
-
     def _get_entry(self, entry, entry_tree):
         '''Helper function for retrieving a particular entry from the prefix trees'''
         for e in entry_tree[entry.filename]:
@@ -316,67 +409,6 @@ class FlawlessService(object):
         if config.default_contact:
             self._sendmail([config.default_contact], "Unexpected problem on Flawless Server", message)
 
-    def _get_line_type(self, line):
-        match = self.extract_base_path_pattern.match(line.filename)
-        if not match:
-            return api_ttypes.LineType.BAD_FILEPATH
-
-        filepath = match.group(1)
-        entry = StackTraceEntry(filepath, line.function_name, line.text)
-        if entry in self.third_party_whitelist[filepath]:
-            return api_ttypes.LineType.THIRDPARTY_WHITELIST
-        elif not self._matches_filepath_pattern(filepath):
-            return api_ttypes.LineType.IGNORED_FILEPATH
-        elif entry in self.building_blocks[filepath]:
-            return api_ttypes.LineType.BUILDING_BLOCK
-        elif entry in self.known_errors[filepath]:
-            return api_ttypes.LineType.KNOWN_ERROR
-        elif self.raise_exception_pattern.match(line.text):
-            return api_ttypes.LineType.RAISED_EXCEPTION
-        else:
-            return api_ttypes.LineType.DEFAULT
-
-    def _format_traceback(self, request, append_locals=True, show_full_stack=False,
-                          linebreak="<br />", spacer="&nbsp;", start_bold="<strong>",
-                          end_bold="</strong>", escape_func=cgi.escape):
-        # Traceback
-        parts = []
-        parts.append("{b}Traceback (most recent call last):{xb}".format(b=start_bold, xb=end_bold))
-        formatted_stack = [
-            '{sp}{sp}File "{filename}", line {line}, in {function}{lb}{sp}{sp}{sp}{sp}{code}'.format(
-                sp=spacer, lb=linebreak, filename=l.filename, line=l.line_number,
-                function=l.function_name, code=escape_func(l.text),
-            )
-            for l in request.traceback
-        ]
-        parts.extend(formatted_stack)
-        parts.append(escape_func(request.exception_message))
-
-        # Frame Locals
-        parts.append(linebreak * 2 + "{b}Stack Frame:{xb}".format(b=start_bold, xb=end_bold))
-        types_to_show = [api_ttypes.LineType.KNOWN_ERROR, api_ttypes.LineType.DEFAULT, api_ttypes.LineType.RAISED_EXCEPTION]
-        frames_to_show = [l for l in request.traceback if l.frame_locals is not None and
-                          (self._get_line_type(l) in types_to_show or show_full_stack)]
-        for l in frames_to_show:
-            line_info = '{sp}{sp}{b}File "{filename}", line {line}, in {function}{xb}'.format(
-                sp=spacer, filename=l.filename, line=l.line_number, function=l.function_name,
-                b=start_bold, xb=end_bold,
-            )
-            local_vals = ['{sp}{sp}{sp}{sp}{name}={value}'.format(
-                          sp=spacer, name=name, value=escape_func(value.decode("UTF-8", "replace")))
-                          for name, value in sorted(l.frame_locals.items())]
-            parts.append(line_info)
-            parts.extend(local_vals or [spacer * 4 + "No variables in this frame"])
-
-        # Additional Information
-        if request.additional_info:
-            parts.append(linebreak * 2 + "{b}Additional Information:{xb}".format(b=start_bold, xb=end_bold))
-            parts.append(
-                escape_func(request.additional_info.decode("UTF-8", "replace")).replace("\n", linebreak)
-            )
-
-        return linebreak.join(parts)
-
     ############################## Record Error ##############################
 
     def record_error(self, request):
@@ -385,7 +417,7 @@ class FlawlessService(object):
 
     def _blame_line(self, traceback):
         '''Figures out which line in traceback is to blame for the error.
-        Returns a 3-tuple of (api_ttypes.ErrorKey, StackTraceEntry, [email recipients])'''
+        Returns a 3-tuple of (ErrorKey, StackTraceEntry, [email recipients])'''
         key = None
         blamed_entry = None
         email_recipients = []
@@ -397,15 +429,12 @@ class FlawlessService(object):
                 filepath = self.extract_base_path_pattern.match(stack_line.filename).group(1)
                 entry = StackTraceEntry(filepath, stack_line.function_name, stack_line.text)
                 blamed_entry = entry
-                key = api_ttypes.ErrorKey(filepath, stack_line.line_number, stack_line.function_name, stack_line.text)
+                key = ErrorKey(filepath, stack_line.line_number, stack_line.function_name, stack_line.text)
                 if filepath in self.watch_all_errors:
                     email_recipients.extend(self.watch_all_errors[filepath])
         return (key, blamed_entry, email_recipients)
 
     def _record_error(self, request):
-        # Parse request
-        request = api_ttypes.RecordErrorRequest.loads(request)
-
         # Figure out which line in the stack trace is to blame for the error
         key, blamed_entry, email_recipients = self._blame_line(request.traceback)
         if not key:
@@ -519,21 +548,26 @@ class FlawlessService(object):
             err_info.email_sent = True
             self.errors_seen[key] = err_info
 
-    ############################## Summarize Errors ##############################
+
+############################## WEB SERVICE ##############################
+
+class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
+
+    def __init__(self, *args, **kwargs):
+        super(FlawlessWebServiceHandler, self).__init__(*args, **kwargs)
 
     def index(self, *args, **kwargs):
         return self.get_weekly_error_report(*args, **kwargs)
 
+    def _get_errors_seen_for_ts(self, timestamp):
+        file_path = self._file_path_for_ms(int(timestamp) * 1000 if timestamp else None)
+        report = self.persistent_dict_cls(file_path)
+        report.open()
+        return report.dict
+
     def get_weekly_error_report(self, timestamp=None, include_known_errors=False,
                                 include_modified_before_min_date=False):
-        file_path = self._file_path_for_ms(int(timestamp) * 1000) if timestamp else None
-        retdict = dict()
-        if timestamp is None or self.errors_seen.get_path() == file_path:
-            retdict = self.errors_seen.dict
-        else:
-            report = self.persistent_dict_cls(file_path)
-            report.open()
-            retdict = report.dict
+        retdict = self._get_errors_seen_for_ts(timestamp)
         html_parts = ["<html><head><title>Error Report</title></head><body>"]
 
         grouped_errors = collections.defaultdict(list)
@@ -568,17 +602,9 @@ class FlawlessService(object):
         return "<br />".join(html_parts)
 
     def view_traceback(self, filename="", function_name="", text="", line_number="", timestamp=None):
-        file_path = self._file_path_for_ms(int(timestamp) * 1000) if timestamp else None
-        errdict = dict()
-        if timestamp is None or self.errors_seen.get_path() == file_path:
-            errdict = self.errors_seen.dict
-        else:
-            report = self.persistent_dict_cls(file_path)
-            report.open()
-            errdict = report.dict
-
-        err_key = api_ttypes.ErrorKey(filename=filename, function_name=function_name,
-                                      text=text, line_number=line_number)
+        errdict = self._get_errors_seen_for_ts(timestamp)
+        err_key = ErrorKey(filename=filename, function_name=function_name,
+                           text=text, line_number=line_number)
         err_info = errdict.get(err_key)
         datastr = "Not Found"
         if err_info:
