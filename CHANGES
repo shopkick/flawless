@@ -1,3 +1,4 @@
+v0.1.7 2014-11-03 -- Migrate to using thrift
 v0.1.6 2014-10-15 -- pep8 formatting + don't blame lines that raise the exception
 v0.1.5 2013-08-13 -- Do not crash when encountering an object that does not support __repr__
 v0.1.4 2013-08-13 -- Rate limit git blames, bug fixes, daemon script

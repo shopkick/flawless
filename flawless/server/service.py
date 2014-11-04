@@ -313,7 +313,6 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
 
     def __init__(self, *args, **kwargs):
         super(FlawlessThriftServiceHandler, self).__init__(*args, **kwargs)
-        print "-" * 50
         self.number_of_git_blames_running = 0
         self.email_remapping = dict((e["remap"], e["to"]) for e in self._read_json_file("email_remapping"))
         self.watch_all_errors, self.watch_only_if_blamed = self._parse_watchers_file("watched_files")
@@ -417,10 +416,8 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
     ############################## Record Error ##############################
 
     def record_error(self, request):
-            print "*" * 50
-            print request
-            t = self.thread_cls(target=self._record_error, args=[request])
-            t.start()
+        t = self.thread_cls(target=self._record_error, args=[request])
+        t.start()
 
     def _blame_line(self, traceback):
         '''Figures out which line in traceback is to blame for the error.
