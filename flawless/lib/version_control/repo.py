@@ -108,14 +108,15 @@ class GitRepository(Repository):
         if not self.remote_url:
             return
 
-        branch_names = self._run_git_command(["fetch"], log_output=log_output)
-        all_branches = self._run_git_command(["branch", "-r"], log_output=log_output).split("\n")
-        all_branches = [s.strip() for s in all_branches if "->" not in s and s.strip()]
-        all_branches = sorted(all_branches, key=self.natural_sort_func)
         if self.branch_pattern:
+            branch_names = self._run_git_command(["fetch"], log_output=log_output)
+            all_branches = self._run_git_command(["branch", "-r"], log_output=log_output).split("\n")
+            all_branches = [s.strip() for s in all_branches if "->" not in s and s.strip()]
+            all_branches = sorted(all_branches, key=self.natural_sort_func)
             all_branches = [s for s in all_branches if self.branch_pattern.match(s)]
-
-        self._run_git_command(["reset", "--hard", all_branches[-1]], log_output=log_output)
+            self._run_git_command(["reset", "--hard", all_branches[-1]], log_output=log_output)
+        else:
+            self._run_git_command(["pull", "--rebase"], log_output=log_output)
 
     def create(self):
         if not os.path.exists(self.local_path):
