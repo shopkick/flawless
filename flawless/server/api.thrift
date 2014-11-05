@@ -45,6 +45,43 @@ struct ErrorInfo {
     7: RecordErrorRequest last_error_data
 }
 
+struct WatchFileEntry {
+    1: string email
+    2: string filepath
+    3: bool watch_all_errors
+}
+
+struct WatchList {
+    1: list<WatchFileEntry> watches
+    2: i64 last_update_ts
+}
+
+struct KnownError {
+    1: string filename
+    2: optional string function_name
+    3: optional string code_fragment
+    4: optional i64 min_alert_threshold
+    5: optional i64 max_alert_threshold
+    6: optional list<string> email_recipients
+    7: optional string email_header
+    8: optional i64 alert_every_n_occurences
+}
+
+struct KnownErrorList {
+    1: list<KnownError> known_errors
+    2: i64 last_update_ts
+}
+
+struct CodeIdentifier {
+    1: string filename
+    2: optional string function_name
+    3: optional string code_fragment
+}
+
+struct CodeIdentifierList {
+    1: list<CodeIdentifier> identifiers
+    2: i64 last_update_ts
+}
 
 service Flawless {
 

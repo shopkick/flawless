@@ -72,10 +72,10 @@ class BaseTestCase(unittest.TestCase):
 
         self.third_party_whitelist = [
             "TEST COMMENT",
-            ThirdPartyWhitelistEntry('facebook.py', 'post_treat_to_facebook',
-                                     'urllib.urlencode(args), post_data)'),
+            api_ttypes.CodeIdentifier('facebook.py', 'post_treat_to_facebook',
+                                      'urllib.urlencode(args), post_data)'),
             "TEST COMMENT",
-            ThirdPartyWhitelistEntry(
+            api_ttypes.CodeIdentifier(
                 'SQLAlchemy-0.5.6-py2.6.egg/sqlalchemy/pool.py',
                 'do_get',
                 'raise exc.TimeoutError("QueuePool limit of size %d overflow %d ',
@@ -83,14 +83,14 @@ class BaseTestCase(unittest.TestCase):
         ]
 
         self.known_errors = [
-            KnownError(
+            api_ttypes.KnownError(
                 'lib/doghouse/authentication.py',
                 'check_auth',
                 'raise errors.BadAuthenticationError("Something smells off...")',
                 max_alert_threshold=0,
             ),
             "TEST COMMENT",
-            KnownError(
+            api_ttypes.KnownError(
                 filename='coreservices/waterbowl/rewards/water.py',
                 function_name='make_external_api_ttypes_request',
                 code_fragment='raise api_ttypes.WaterbowlError(error_code='
@@ -103,9 +103,9 @@ class BaseTestCase(unittest.TestCase):
 
         self.building_blocks = [
             "TEST COMMENT",
-            BuildingBlock('apps/shopkick/doghouse/lib/base.py',
-                          '_get_request_param',
-                          'raise errors.BadRequestError("Missing param %s" % name)'),
+            api_ttypes.CodeIdentifier('apps/shopkick/doghouse/lib/base.py',
+                                      '_get_request_param',
+                                      'raise errors.BadRequestError("Missing param %s" % name)'),
         ]
 
         self.file_open_stub.set_file('../config/building_blocks', dump_json(self.building_blocks))

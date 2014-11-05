@@ -49,84 +49,28 @@ log = logging.getLogger(__name__)
 config = flawless.lib.config.get()
 
 
-############################## HELPER DATA STRUCTURES ##############################
+############################## EXTEND THRIFT TTYPES ##############################
 
-# Add hash function to ErrorKey thrift object since thrift objects don't support hashing by default
-api_ttypes.ErrorKey.__hash__ = lambda self: reduce(lambda x, y: x ^ hash(y), self.__dict__.iteritems(), 1)
+def code_identifier_equality(self, other):
+    # We allow people to whitelist entire files, or functions by setting function_name to None or
+    # code-fragment to None
+    if self.filename != other.filename:
+        return False
+    if self.function_name and other.function_name and self.function_name != other.function_name:
+        return False
 
+    # Compress whitespace characters to make the comparissions more forgiving
+    self_fragment = None if not self.code_fragment else re.sub("\s+", " ", self.code_fragment)
+    other_fragment = None if not other.code_fragment else re.sub("\s+", " ", other.code_fragment)
+    if (self_fragment and other_fragment and self_fragment not in other_fragment and
+            other_fragment not in self_fragment):
+        return False
 
-class CodeIdentifierBaseClass(object):
-    def __init__(self, filename, function_name=None, code_fragment=None, min_alert_threshold=None,
-                 max_alert_threshold=None, email_recipients=None, email_header=None,
-                 alert_every_n_occurences=None):
-        if not filename:
-            raise ValueError("filename is required")
-        self.filename = filename
-        self.function_name = function_name
-        # Condense whitespace to make comparissions more forgiving
-        self.code_fragment = None if not code_fragment else re.sub("\s+", " ", code_fragment)
-
-        # Optional fields
-        self.min_alert_threshold = min_alert_threshold
-        self.max_alert_threshold = max_alert_threshold
-        self.email_recipients = email_recipients
-        self.email_header = email_header
-        self.alert_every_n_occurences = alert_every_n_occurences
-
-    def to_json(self):
-        return dump_json(dict((k, v) for k, v in self.__dict__.items() if v))
-
-    def __str__(self):
-        return repr(self)
-
-    def __repr__(self):
-        return "%s(%s)" % (
-            self.__class__.__name__,
-            ", ".join("%s=%s" % (k, repr(v)) for k, v in self.__dict__.items())
-        )
-
-    def __eq__(self, other):
-        # We allow people to whitelist entire files, or functions by setting function_name to None or
-        # code-fragment to None
-        if not isinstance(other, CodeIdentifierBaseClass):
-            return False
-        if self.filename != other.filename:
-            return False
-        if self.function_name and other.function_name and self.function_name != other.function_name:
-            return False
-        if (self.code_fragment and other.code_fragment and self.code_fragment not in other.code_fragment
-                and other.code_fragment not in self.code_fragment):
-            return False
-
-        return True
+    return True
 
 
-class KnownError(CodeIdentifierBaseClass):
-    def __init__(self, *args, **kwargs):
-        super(KnownError, self).__init__(*args, **kwargs)
-        if (self.min_alert_threshold == self.max_alert_threshold == self.alert_every_n_occurences == None):
-            raise ValueError("One of the following must be set: min_alert_threshold, "
-                             "max_alert_threshold, or alert_every_n_occurences")
-
-
-class StackTraceEntry(CodeIdentifierBaseClass):
-    def __init__(self, filename, function_name, code_fragment):
-        if not (filename and function_name and code_fragment):
-            raise ValueError("filename, function_name, and code_fragment are required")
-        super(StackTraceEntry, self).__init__(filename, function_name, code_fragment)
-
-
-class BuildingBlock(CodeIdentifierBaseClass):
-    def __init__(self, filename, function_name=None, code_fragment=None):
-        super(BuildingBlock, self).__init__(filename, function_name, code_fragment)
-
-
-class ThirdPartyWhitelistEntry(CodeIdentifierBaseClass):
-    def __init__(self, filename, function_name=None, code_fragment=None):
-        super(ThirdPartyWhitelistEntry, self).__init__(filename, function_name, code_fragment)
-
-
-############################## GLOBAL HELPER FUNCTIONS ##############################
+def code_identifier_to_json(self):
+    return dump_json(dict((k, v) for k, v in self.__dict__.items() if v))
 
 
 def dump_json(obj):
@@ -136,6 +80,12 @@ def dump_json(obj):
         separators=(',', ': '),
         default=lambda o: dict((k, v) for k, v in o.__dict__.items() if v is not None),
     )
+
+api_ttypes.CodeIdentifier.__eq__ = code_identifier_equality
+api_ttypes.CodeIdentifier.to_json = code_identifier_to_json
+api_ttypes.KnownError.__eq__ = code_identifier_equality
+api_ttypes.KnownError.to_json = code_identifier_to_json
+api_ttypes.ErrorKey.__hash__ = lambda self: reduce(lambda x, y: x ^ hash(y), self.__dict__.iteritems(), 1)
 
 
 ############################## BASE SERVICE CLASS ##############################
@@ -154,9 +104,9 @@ class FlawlessServiceBaseClass(object):
         self.smtp_client_cls = smtp_client_cls
         self.time_func = time_func
 
-        self.building_blocks = self._parse_whitelist_file("building_blocks", BuildingBlock)
-        self.third_party_whitelist = self._parse_whitelist_file("third_party_whitelist", ThirdPartyWhitelistEntry)
-        self.known_errors = self._parse_whitelist_file("known_errors", KnownError)
+        self.building_blocks = self._parse_whitelist_file("building_blocks", api_ttypes.CodeIdentifier)
+        self.third_party_whitelist = self._parse_whitelist_file("third_party_whitelist", api_ttypes.CodeIdentifier)
+        self.known_errors = self._parse_whitelist_file("known_errors", api_ttypes.KnownError)
 
         self.extract_base_path_pattern = re.compile('^.*/%s/?(.*)$' % config.report_runtime_package_directory_name)
         self.raise_exception_pattern = re.compile('^\s*raise[ \n]')
@@ -182,10 +132,11 @@ class FlawlessServiceBaseClass(object):
         blame_only_tree = prefix_tree.FilePathTree()
 
         for watch in self._read_json_file(filename):
-            tree = all_error_tree if watch.get("watch_all_errors") else blame_only_tree
-            if watch["filepath"] not in tree:
-                tree[watch["filepath"]] = list()
-            tree[watch["filepath"]].append(watch["email"])
+            py_entry = api_ttypes.WatchFileEntry(**watch)
+            tree = all_error_tree if py_entry.watch_all_errors else blame_only_tree
+            if py_entry.filepath not in tree:
+                tree[py_entry.filepath] = list()
+            tree[py_entry.filepath].append(py_entry.email)
 
         # Set all_error_tree to have accumulator that will allow us to find everyone who was watching
         # the file or a parent of the file
@@ -217,7 +168,7 @@ class FlawlessServiceBaseClass(object):
             return api_ttypes.LineType.BAD_FILEPATH
 
         filepath = match.group(1)
-        entry = StackTraceEntry(filepath, line.function_name, line.text)
+        entry = api_ttypes.CodeIdentifier(filepath, line.function_name, line.text)
         if entry in self.third_party_whitelist[filepath]:
             return api_ttypes.LineType.THIRDPARTY_WHITELIST
         elif not self._matches_filepath_pattern(filepath):
@@ -423,7 +374,7 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
                 return None, None, None
             elif line_type in [api_ttypes.LineType.DEFAULT, api_ttypes.LineType.KNOWN_ERROR]:
                 filepath = self.extract_base_path_pattern.match(stack_line.filename).group(1)
-                entry = StackTraceEntry(filepath, stack_line.function_name, stack_line.text)
+                entry = api_ttypes.CodeIdentifier(filepath, stack_line.function_name, stack_line.text)
                 blamed_entry = entry
                 key = api_ttypes.ErrorKey(filepath, stack_line.line_number, stack_line.function_name, stack_line.text)
                 if filepath in self.watch_all_errors:
@@ -693,11 +644,10 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
 
     def save_known_error(self, request):
         params = dict(urlparse.parse_qsl(request))
-        class_map = dict(known_errors=KnownError, building_blocks=BuildingBlock,
-                         third_party_whitelist=ThirdPartyWhitelistEntry)
+        class_map = dict(known_errors=api_ttypes.KnownError, building_blocks=api_ttypes.CodeIdentifier,
+                         third_party_whitelist=api_ttypes.CodeIdentifier)
         cls = class_map[params['type']]
-        init_args = inspect.getargspec(CodeIdentifierBaseClass.__init__ if cls == KnownError
-                                       else cls.__init__).args
+        init_args = inspect.getargspec(cls.__init__).args
 
         whitelist_attrs = [s for s in init_args if s != 'self']
         new_entry = cls(**dict((k, params.get(k)) for k in whitelist_attrs))

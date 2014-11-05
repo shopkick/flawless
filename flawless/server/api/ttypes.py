@@ -510,3 +510,566 @@ class ErrorInfo:
 
   def __ne__(self, other):
     return not (self == other)
+
+class WatchFileEntry:
+  """
+  Attributes:
+   - email
+   - filepath
+   - watch_all_errors
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'email', None, None, ), # 1
+    (2, TType.STRING, 'filepath', None, None, ), # 2
+    (3, TType.BOOL, 'watch_all_errors', None, None, ), # 3
+  )
+
+  def __init__(self, email=None, filepath=None, watch_all_errors=None,):
+    self.email = email
+    self.filepath = filepath
+    self.watch_all_errors = watch_all_errors
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.email = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRING:
+          self.filepath = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.BOOL:
+          self.watch_all_errors = iprot.readBool();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('WatchFileEntry')
+    if self.email is not None:
+      oprot.writeFieldBegin('email', TType.STRING, 1)
+      oprot.writeString(self.email)
+      oprot.writeFieldEnd()
+    if self.filepath is not None:
+      oprot.writeFieldBegin('filepath', TType.STRING, 2)
+      oprot.writeString(self.filepath)
+      oprot.writeFieldEnd()
+    if self.watch_all_errors is not None:
+      oprot.writeFieldBegin('watch_all_errors', TType.BOOL, 3)
+      oprot.writeBool(self.watch_all_errors)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class WatchList:
+  """
+  Attributes:
+   - watches
+   - last_update_ts
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.LIST, 'watches', (TType.STRUCT,(WatchFileEntry, WatchFileEntry.thrift_spec)), None, ), # 1
+    (2, TType.I64, 'last_update_ts', None, None, ), # 2
+  )
+
+  def __init__(self, watches=None, last_update_ts=None,):
+    self.watches = watches
+    self.last_update_ts = last_update_ts
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.LIST:
+          self.watches = []
+          (_etype19, _size16) = iprot.readListBegin()
+          for _i20 in xrange(_size16):
+            _elem21 = WatchFileEntry()
+            _elem21.read(iprot)
+            self.watches.append(_elem21)
+          iprot.readListEnd()
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.I64:
+          self.last_update_ts = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('WatchList')
+    if self.watches is not None:
+      oprot.writeFieldBegin('watches', TType.LIST, 1)
+      oprot.writeListBegin(TType.STRUCT, len(self.watches))
+      for iter22 in self.watches:
+        iter22.write(oprot)
+      oprot.writeListEnd()
+      oprot.writeFieldEnd()
+    if self.last_update_ts is not None:
+      oprot.writeFieldBegin('last_update_ts', TType.I64, 2)
+      oprot.writeI64(self.last_update_ts)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class KnownError:
+  """
+  Attributes:
+   - filename
+   - function_name
+   - code_fragment
+   - min_alert_threshold
+   - max_alert_threshold
+   - email_recipients
+   - email_header
+   - alert_every_n_occurences
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'filename', None, None, ), # 1
+    (2, TType.STRING, 'function_name', None, None, ), # 2
+    (3, TType.STRING, 'code_fragment', None, None, ), # 3
+    (4, TType.I64, 'min_alert_threshold', None, None, ), # 4
+    (5, TType.I64, 'max_alert_threshold', None, None, ), # 5
+    (6, TType.LIST, 'email_recipients', (TType.STRING,None), None, ), # 6
+    (7, TType.STRING, 'email_header', None, None, ), # 7
+    (8, TType.I64, 'alert_every_n_occurences', None, None, ), # 8
+  )
+
+  def __init__(self, filename=None, function_name=None, code_fragment=None, min_alert_threshold=None, max_alert_threshold=None, email_recipients=None, email_header=None, alert_every_n_occurences=None,):
+    self.filename = filename
+    self.function_name = function_name
+    self.code_fragment = code_fragment
+    self.min_alert_threshold = min_alert_threshold
+    self.max_alert_threshold = max_alert_threshold
+    self.email_recipients = email_recipients
+    self.email_header = email_header
+    self.alert_every_n_occurences = alert_every_n_occurences
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.filename = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRING:
+          self.function_name = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRING:
+          self.code_fragment = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.I64:
+          self.min_alert_threshold = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      elif fid == 5:
+        if ftype == TType.I64:
+          self.max_alert_threshold = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      elif fid == 6:
+        if ftype == TType.LIST:
+          self.email_recipients = []
+          (_etype26, _size23) = iprot.readListBegin()
+          for _i27 in xrange(_size23):
+            _elem28 = iprot.readString();
+            self.email_recipients.append(_elem28)
+          iprot.readListEnd()
+        else:
+          iprot.skip(ftype)
+      elif fid == 7:
+        if ftype == TType.STRING:
+          self.email_header = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 8:
+        if ftype == TType.I64:
+          self.alert_every_n_occurences = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('KnownError')
+    if self.filename is not None:
+      oprot.writeFieldBegin('filename', TType.STRING, 1)
+      oprot.writeString(self.filename)
+      oprot.writeFieldEnd()
+    if self.function_name is not None:
+      oprot.writeFieldBegin('function_name', TType.STRING, 2)
+      oprot.writeString(self.function_name)
+      oprot.writeFieldEnd()
+    if self.code_fragment is not None:
+      oprot.writeFieldBegin('code_fragment', TType.STRING, 3)
+      oprot.writeString(self.code_fragment)
+      oprot.writeFieldEnd()
+    if self.min_alert_threshold is not None:
+      oprot.writeFieldBegin('min_alert_threshold', TType.I64, 4)
+      oprot.writeI64(self.min_alert_threshold)
+      oprot.writeFieldEnd()
+    if self.max_alert_threshold is not None:
+      oprot.writeFieldBegin('max_alert_threshold', TType.I64, 5)
+      oprot.writeI64(self.max_alert_threshold)
+      oprot.writeFieldEnd()
+    if self.email_recipients is not None:
+      oprot.writeFieldBegin('email_recipients', TType.LIST, 6)
+      oprot.writeListBegin(TType.STRING, len(self.email_recipients))
+      for iter29 in self.email_recipients:
+        oprot.writeString(iter29)
+      oprot.writeListEnd()
+      oprot.writeFieldEnd()
+    if self.email_header is not None:
+      oprot.writeFieldBegin('email_header', TType.STRING, 7)
+      oprot.writeString(self.email_header)
+      oprot.writeFieldEnd()
+    if self.alert_every_n_occurences is not None:
+      oprot.writeFieldBegin('alert_every_n_occurences', TType.I64, 8)
+      oprot.writeI64(self.alert_every_n_occurences)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class KnownErrorList:
+  """
+  Attributes:
+   - known_errors
+   - last_update_ts
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.LIST, 'known_errors', (TType.STRUCT,(KnownError, KnownError.thrift_spec)), None, ), # 1
+    (2, TType.I64, 'last_update_ts', None, None, ), # 2
+  )
+
+  def __init__(self, known_errors=None, last_update_ts=None,):
+    self.known_errors = known_errors
+    self.last_update_ts = last_update_ts
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.LIST:
+          self.known_errors = []
+          (_etype33, _size30) = iprot.readListBegin()
+          for _i34 in xrange(_size30):
+            _elem35 = KnownError()
+            _elem35.read(iprot)
+            self.known_errors.append(_elem35)
+          iprot.readListEnd()
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.I64:
+          self.last_update_ts = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('KnownErrorList')
+    if self.known_errors is not None:
+      oprot.writeFieldBegin('known_errors', TType.LIST, 1)
+      oprot.writeListBegin(TType.STRUCT, len(self.known_errors))
+      for iter36 in self.known_errors:
+        iter36.write(oprot)
+      oprot.writeListEnd()
+      oprot.writeFieldEnd()
+    if self.last_update_ts is not None:
+      oprot.writeFieldBegin('last_update_ts', TType.I64, 2)
+      oprot.writeI64(self.last_update_ts)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class CodeIdentifier:
+  """
+  Attributes:
+   - filename
+   - function_name
+   - code_fragment
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'filename', None, None, ), # 1
+    (2, TType.STRING, 'function_name', None, None, ), # 2
+    (3, TType.STRING, 'code_fragment', None, None, ), # 3
+  )
+
+  def __init__(self, filename=None, function_name=None, code_fragment=None,):
+    self.filename = filename
+    self.function_name = function_name
+    self.code_fragment = code_fragment
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.filename = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRING:
+          self.function_name = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRING:
+          self.code_fragment = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('CodeIdentifier')
+    if self.filename is not None:
+      oprot.writeFieldBegin('filename', TType.STRING, 1)
+      oprot.writeString(self.filename)
+      oprot.writeFieldEnd()
+    if self.function_name is not None:
+      oprot.writeFieldBegin('function_name', TType.STRING, 2)
+      oprot.writeString(self.function_name)
+      oprot.writeFieldEnd()
+    if self.code_fragment is not None:
+      oprot.writeFieldBegin('code_fragment', TType.STRING, 3)
+      oprot.writeString(self.code_fragment)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class CodeIdentifierList:
+  """
+  Attributes:
+   - identifiers
+   - last_update_ts
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.LIST, 'identifiers', (TType.STRUCT,(CodeIdentifier, CodeIdentifier.thrift_spec)), None, ), # 1
+    (2, TType.I64, 'last_update_ts', None, None, ), # 2
+  )
+
+  def __init__(self, identifiers=None, last_update_ts=None,):
+    self.identifiers = identifiers
+    self.last_update_ts = last_update_ts
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.LIST:
+          self.identifiers = []
+          (_etype40, _size37) = iprot.readListBegin()
+          for _i41 in xrange(_size37):
+            _elem42 = CodeIdentifier()
+            _elem42.read(iprot)
+            self.identifiers.append(_elem42)
+          iprot.readListEnd()
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.I64:
+          self.last_update_ts = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('CodeIdentifierList')
+    if self.identifiers is not None:
+      oprot.writeFieldBegin('identifiers', TType.LIST, 1)
+      oprot.writeListBegin(TType.STRUCT, len(self.identifiers))
+      for iter43 in self.identifiers:
+        iter43.write(oprot)
+      oprot.writeListEnd()
+      oprot.writeFieldEnd()
+    if self.last_update_ts is not None:
+      oprot.writeFieldBegin('last_update_ts', TType.I64, 2)
+      oprot.writeI64(self.last_update_ts)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
