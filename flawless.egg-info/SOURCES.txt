@@ -30,6 +30,7 @@ flawless/lib/config/__init__.py
 flawless/lib/data_structures/__init__.py
 flawless/lib/data_structures/persistent_dictionary.py
 flawless/lib/data_structures/prefix_tree.py
+flawless/lib/data_structures/storage.py
 flawless/lib/data_structures/stubs.py
 flawless/lib/version_control/__init__.py
 flawless/lib/version_control/repo.py
