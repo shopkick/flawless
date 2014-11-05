@@ -34,8 +34,8 @@ import urllib
 import urlparse
 
 import flawless.lib.config
-from flawless.lib.data_structures.persistent_dictionary import PersistentDictionary
 from flawless.lib.data_structures import prefix_tree
+from flawless.lib.data_structures.storage import DiskStorage
 from flawless.lib.version_control.repo import get_repository
 import flawless.server.api.ttypes as api_ttypes
 
@@ -51,16 +51,8 @@ config = flawless.lib.config.get()
 
 ############################## HELPER DATA STRUCTURES ##############################
 
-class ErrorKey(object):
-
-    def __init__(self, filename, line_number, function_name, text):
-        self.__dict__.update((k, v) for k, v in locals().items() if k != 'self')
-
-    def __hash__(self):
-        return reduce(lambda x, y: x ^ hash(y), self.__dict__.iteritems(), 1)
-
-    def __eq__(self, other):
-        return type(self) == type(other) and self.__dict__ == other.__dict__
+# Add hash function to ErrorKey thrift object since thrift objects don't support hashing by default
+api_ttypes.ErrorKey.__hash__ = lambda self: reduce(lambda x, y: x ^ hash(y), self.__dict__.iteritems(), 1)
 
 
 class CodeIdentifierBaseClass(object):
@@ -151,11 +143,11 @@ def dump_json(obj):
 class FlawlessServiceBaseClass(object):
     """Contains numerous shared helper functions for the ThriftService & WebService classes"""
 
-    def __init__(self, persistent_dict_cls=PersistentDictionary,
+    def __init__(self, storage_cls=DiskStorage,
                  thread_cls=threading.Thread,
                  open_file_func=open, open_process_func=subprocess.Popen,
                  smtp_client_cls=smtplib.SMTP, time_func=time.time):
-        self.persistent_dict_cls = persistent_dict_cls
+        self.storage_cls = storage_cls
         self.thread_cls = thread_cls
         self.open_file_func = open_file_func
         self.open_process_func = open_process_func
@@ -206,7 +198,7 @@ class FlawlessServiceBaseClass(object):
 
     ############################## Timestamp Helpers ##############################
 
-    def _file_path_for_ms(self, epoch_ms):
+    def _week_prefix_for_ms(self, epoch_ms):
         timestamp_date = self._convert_epoch_ms(cls=datetime.date, epoch_ms=epoch_ms)
         timestamp_date = timestamp_date - datetime.timedelta(days=timestamp_date.isoweekday() % 7)
         file_path = os.path.join(config.data_dir_path, "flawless-errors-" + timestamp_date.strftime("%Y-%m-%d"))
@@ -330,15 +322,15 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
     ############################## Update Thread ##############################
 
     def _refresh_errors_seen(self, epoch_ms=None):
-        file_path = self._file_path_for_ms(epoch_ms)
+        prefix = self._week_prefix_for_ms(epoch_ms)
         with self.lock:
             if self.errors_seen is None:
-                self.errors_seen = self.persistent_dict_cls(file_path)
+                self.errors_seen = self.storage_cls(prefix)
                 self.errors_seen.open()
-            elif file_path != self.errors_seen.get_path():
+            elif prefix != self.errors_seen.week_prefix:
                 # Order matters here since there can be a race condition if not done correctly
                 old_errors_seen = self.errors_seen
-                new_errors_seen = self.persistent_dict_cls(file_path)
+                new_errors_seen = self.storage_cls(prefix)
                 new_errors_seen.open()
                 self.errors_seen = new_errors_seen
                 old_errors_seen.close()
@@ -433,7 +425,7 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
                 filepath = self.extract_base_path_pattern.match(stack_line.filename).group(1)
                 entry = StackTraceEntry(filepath, stack_line.function_name, stack_line.text)
                 blamed_entry = entry
-                key = ErrorKey(filepath, stack_line.line_number, stack_line.function_name, stack_line.text)
+                key = api_ttypes.ErrorKey(filepath, stack_line.line_number, stack_line.function_name, stack_line.text)
                 if filepath in self.watch_all_errors:
                     email_recipients.extend(self.watch_all_errors[filepath])
         return (key, blamed_entry, email_recipients)
@@ -565,19 +557,19 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
         return self.get_weekly_error_report(*args, **kwargs)
 
     def _get_errors_seen_for_ts(self, timestamp):
-        file_path = self._file_path_for_ms(int(timestamp) * 1000 if timestamp else None)
-        report = self.persistent_dict_cls(file_path)
-        report.open()
-        return report.dict
+        prefix = self._week_prefix_for_ms(int(timestamp) * 1000 if timestamp else None)
+        errors_seen = self.storage_cls(prefix)
+        errors_seen.open()
+        return errors_seen
 
     def get_weekly_error_report(self, timestamp=None, include_known_errors=False,
                                 include_modified_before_min_date=False):
-        retdict = self._get_errors_seen_for_ts(timestamp)
+        errors_seen = self._get_errors_seen_for_ts(timestamp)
         html_parts = ["<html><head><title>Error Report</title></head><body>"]
 
         grouped_errors = collections.defaultdict(list)
         developer_score = collections.defaultdict(int)
-        for key, value in retdict.items():
+        for key, value in errors_seen.iteritems():
             if ((not value.is_known_error or include_known_errors) and
                     (value.date >= config.report_only_after_minimum_date or include_modified_before_min_date)):
                 grouped_errors[value.developer_email].append((key, value))
@@ -607,13 +599,15 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
         return "<br />".join(html_parts)
 
     def view_traceback(self, filename="", function_name="", text="", line_number="", timestamp=None):
-        errdict = self._get_errors_seen_for_ts(timestamp)
-        err_key = ErrorKey(filename=filename, function_name=function_name,
-                           text=text, line_number=line_number)
-        err_info = errdict.get(err_key)
-        datastr = "Not Found"
-        if err_info:
+        errors_seen = self._get_errors_seen_for_ts(timestamp)
+        err_key = api_ttypes.ErrorKey(filename=filename, function_name=function_name,
+                                      text=text, line_number=line_number)
+        try:
+            err_info = errors_seen[err_key]
             datastr = self._format_traceback(err_info.last_error_data)
+        except KeyError:
+            datastr = "Not Found"
+
         return """
             <html>
                 <head>

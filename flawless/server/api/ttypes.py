@@ -47,6 +47,102 @@ class LineType:
   }
 
 
+class ErrorKey:
+  """
+  Attributes:
+   - filename
+   - line_number
+   - function_name
+   - text
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'filename', None, None, ), # 1
+    (2, TType.I64, 'line_number', None, None, ), # 2
+    (3, TType.STRING, 'function_name', None, None, ), # 3
+    (4, TType.STRING, 'text', None, None, ), # 4
+  )
+
+  def __init__(self, filename=None, line_number=None, function_name=None, text=None,):
+    self.filename = filename
+    self.line_number = line_number
+    self.function_name = function_name
+    self.text = text
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.filename = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.I64:
+          self.line_number = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRING:
+          self.function_name = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 4:
+        if ftype == TType.STRING:
+          self.text = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('ErrorKey')
+    if self.filename is not None:
+      oprot.writeFieldBegin('filename', TType.STRING, 1)
+      oprot.writeString(self.filename)
+      oprot.writeFieldEnd()
+    if self.line_number is not None:
+      oprot.writeFieldBegin('line_number', TType.I64, 2)
+      oprot.writeI64(self.line_number)
+      oprot.writeFieldEnd()
+    if self.function_name is not None:
+      oprot.writeFieldBegin('function_name', TType.STRING, 3)
+      oprot.writeString(self.function_name)
+      oprot.writeFieldEnd()
+    if self.text is not None:
+      oprot.writeFieldBegin('text', TType.STRING, 4)
+      oprot.writeString(self.text)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
 class StackLine:
   """
   Attributes:

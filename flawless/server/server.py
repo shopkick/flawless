@@ -24,6 +24,7 @@ from thrift.transport import TSocket
 from thrift.transport import TTransport
 
 import flawless.lib.config
+from flawless.lib.data_structures.storage import DiskStorage
 from flawless.server.api import Flawless
 from flawless.server.service import FlawlessThriftServiceHandler
 from flawless.server.service import FlawlessWebServiceHandler
@@ -86,7 +87,17 @@ class SimpleRequestHTTPHandler(BaseHTTPRequestHandler):
             self.wfile.write(ret)
 
 
-def serve(conf_path):
+def serve(conf_path, storage_cls=DiskStorage):
+    """This method starts the server. There are two processes, one is an HTTP server that shows
+    and admin interface and the second is a Thrift server that the client code calls.
+
+    Arguments:
+        `conf_path` - The path to your flawless.cfg file
+        `storage_cls` - You can pass in your own storage class that implements StorageInterface. You must implement
+                        storage_cls if you want Flawless to be horizontally scalable, since by default it will just
+                        store everything on the local disk.
+    """
+
     flawless.lib.config.init_config(conf_path)
     # Try and create datadir if it doesn't exist. For instance it might be in /tmp
     if not os.path.exists(config.data_dir_path):
@@ -95,7 +106,7 @@ def serve(conf_path):
     if os.fork() == 0:
         # Setup HTTP server
         logging.basicConfig(level=getattr(logging, config.log_level), filename=config.log_file, stream=sys.stderr)
-        handler = FlawlessWebServiceHandler()
+        handler = FlawlessWebServiceHandler(storage_cls=storage_cls)
         server = SimpleThreadedHTTPServer(('', config.http_port), SimpleRequestHTTPHandler)
         server.attach_service(handler)
         server.request_queue_size = 50
@@ -106,7 +117,7 @@ def serve(conf_path):
             server.server_close()
     else:
         # Setup Thrift server
-        handler = FlawlessThriftServiceHandler()
+        handler = FlawlessThriftServiceHandler(storage_cls=storage_cls)
         processor = Flawless.Processor(handler)
         transport = TSocket.TServerSocket(port=config.port)
         tfactory = TTransport.TFramedTransportFactory()

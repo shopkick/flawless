@@ -12,6 +12,13 @@ enum LineType {
     RAISED_EXCEPTION = 7,
 }
 
+struct ErrorKey {
+    1: string filename
+    2: i64 line_number
+    3: string function_name
+    4: string text
+}
+
 struct StackLine {
     1: string filename
     2: i64 line_number

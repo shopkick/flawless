@@ -17,7 +17,7 @@ import time
 import unittest
 import StringIO
 
-from flawless.lib.data_structures.stubs import PersistentDictionaryStub
+from flawless.lib.data_structures.stubs import StorageStub
 import flawless.lib.config
 import flawless.server.api.ttypes as api_ttypes
 from flawless.server.service import *
@@ -132,7 +132,7 @@ class BaseTestCase(unittest.TestCase):
 
         self.handler = FlawlessThriftServiceHandler(
             open_process_func=self.popen_stub,
-            persistent_dict_cls=PersistentDictionaryStub,
+            storage_cls=StorageStub,
             smtp_client_cls=self.smtp_stub,
             time_func=lambda: self.stub_time,
             open_file_func=self.file_open_stub,
@@ -188,7 +188,7 @@ class RecordErrorTestCase(BaseTestCase):
 
         self.handler.record_error(req)
         self.assertDictEquals({
-            ErrorKey("coreservices/service.py", 7, "serve", "..."): api_ttypes.ErrorInfo(
+            api_ttypes.ErrorKey("coreservices/service.py", 7, "serve", "..."): api_ttypes.ErrorInfo(
                 1, "wishbone@shopkick.com", "2017-07-30 00:00:00", True, "2020-01-01 00:00:00",
                 is_known_error=False, last_error_data=req)},
             self.handler.errors_seen.dict)
@@ -212,7 +212,7 @@ class RecordErrorTestCase(BaseTestCase):
 
         self.handler.record_error(req)
         self.assertDictEquals({
-            ErrorKey("coreservices/thrift_file.py", 7, "serve", "..."): api_ttypes.ErrorInfo(
+            api_ttypes.ErrorKey("coreservices/thrift_file.py", 7, "serve", "..."): api_ttypes.ErrorInfo(
                 1, "wishbone@shopkick.com", "2017-07-30 00:00:00", True, "2020-01-01 00:00:00",
                 is_known_error=False, last_error_data=req)},
             self.handler.errors_seen.dict)
@@ -240,7 +240,7 @@ class RecordErrorTestCase(BaseTestCase):
 
         self.handler.record_error(req)
         self.assertDictEquals({
-            ErrorKey("coreservices/service.py", 7, "serve", "..."): api_ttypes.ErrorInfo(
+            api_ttypes.ErrorKey("coreservices/service.py", 7, "serve", "..."): api_ttypes.ErrorInfo(
                 1, "wishbone@shopkick.com", "2017-07-30 00:00:00", False, "2020-01-01 00:00:00",
                 is_known_error=False, last_error_data=req)},
             self.handler.errors_seen.dict)
@@ -399,7 +399,7 @@ class RecordErrorTestCase(BaseTestCase):
 
         self.handler.record_error(req)
         self.assertDictEquals({
-            ErrorKey("coreservices/service.py", 7, "serve", "..."): api_ttypes.ErrorInfo(
+            api_ttypes.ErrorKey("coreservices/service.py", 7, "serve", "..."): api_ttypes.ErrorInfo(
                 1, "wishbone@shopkick.com", "2009-07-30 00:00:00", False,
                 "2020-01-01 00:00:00", is_known_error=False, last_error_data=req)},
             self.handler.errors_seen.dict)
@@ -418,7 +418,7 @@ class RecordErrorTestCase(BaseTestCase):
         self.handler.record_error(req)
 
         self.assertDictEquals({
-            ErrorKey("coreservices/service.py", 7, "serve", "..."): api_ttypes.ErrorInfo(
+            api_ttypes.ErrorKey("coreservices/service.py", 7, "serve", "..."): api_ttypes.ErrorInfo(
                 2, "wishbone@shopkick.com", "2017-07-30 00:00:00", True, "2020-01-02 00:00:00",
                 is_known_error=False, last_error_data=req)},
             self.handler.errors_seen.dict)
@@ -435,12 +435,12 @@ class RecordErrorTestCase(BaseTestCase):
         self.handler.record_error(req)
 
         self.assertDictEquals({
-            ErrorKey("lib/doghouse/authentication.py", 7, "check_auth",
-                     'raise errors.BadAuthenticationError("Something smells off...")'
-                     ): api_ttypes.ErrorInfo(1, "wishbone@shopkick.com", "2017-07-30 00:00:00",
-                                             False, "2020-01-01 00:00:00", is_known_error=True,
-                                             last_error_data=req)},
-            self.handler.errors_seen.dict)
+            api_ttypes.ErrorKey("lib/doghouse/authentication.py", 7, "check_auth",
+                                'raise errors.BadAuthenticationError("Something smells off...")'
+                                ): api_ttypes.ErrorInfo(1, "wishbone@shopkick.com", "2017-07-30 00:00:00",
+                                                        False, "2020-01-01 00:00:00", is_known_error=True,
+                                                        last_error_data=req)},
+                              self.handler.errors_seen.dict)
         self.assertEquals(None, self.smtp_stub.last_args)
 
     def test_ignores_third_party_whitelisted_errors(self):
@@ -484,7 +484,7 @@ class RecordErrorTestCase(BaseTestCase):
         self.handler.record_error(req)
 
         self.assertDictEquals({
-            ErrorKey("coreservices/service.py", 7, "serve", "..."): api_ttypes.ErrorInfo(
+            api_ttypes.ErrorKey("coreservices/service.py", 7, "serve", "..."): api_ttypes.ErrorInfo(
                 1, "wishbone@shopkick.com", "2017-07-30 00:00:00", True, "2020-01-01 00:00:00",
                 is_known_error=False, last_error_data=req)},
             self.handler.errors_seen.dict)
