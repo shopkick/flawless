@@ -90,6 +90,6 @@ class DiskStorage(object):
         self.disk_dict.close()
 
     def iteritems(self):
-        return self.disk_dict.iteritems()
+        return self.disk_dict.dict.iteritems()
 
 StorageInterface.register(DiskStorage)
