@@ -1,3 +1,4 @@
+v0.2.0 2014-11-06 -- Complete migrating whitelist/watch configs to allow storage in a DB
 v0.1.9 2014-11-05 -- Bug fix & migrate config files to thrift objs
 v0.1.8 2014-11-04 -- Allow custom storage solution
 v0.1.7 2014-11-03 -- Migrate to using thrift

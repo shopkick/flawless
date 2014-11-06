@@ -147,7 +147,7 @@ Cache-Control: max-age=43200
 Connection: close
 Content-Length: -1
 Content-Type: application/x-www-form-urlencoded
-Cookie: session_id=1E9DTWDVCQ7M8; __utma=151718139.482813466.1384371861.1384371861.1384832848.2; __utmb=151718139.2.9.1384832848; __utmc=151718139; __utmz=151718139.1384371861.1.1.utmcsr=google|utmccn=(organic)|utmcmd=organic|utmctr=shopkick
+Cookie: session_id=1E9DTWDVCQ7M8; __utma=151718139.482813466.1384371861.1384371861.1384832848.2; __utmb=151718139.2.9.1384832848; __utmc=151718139;
 Host: app.shopkick.com
 Origin: http://app.shopkick.com
 Referer: http://app.shopkick.com/download_page?launch_reg=1

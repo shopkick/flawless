@@ -130,7 +130,7 @@ def serve(conf_path, storage_cls=DiskStorage):
         except (KeyboardInterrupt, SystemExit):
             handler.errors_seen.sync()
             transport.close()
-            os.kill(child_pid, signal.SIGQUIT)
+            os.kill(child_pid, signal.SIGINT)
 
 
 def main():

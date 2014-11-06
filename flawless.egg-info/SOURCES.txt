@@ -6,12 +6,7 @@ README.md
 flawless_daemon.py
 requirements.txt
 setup.py
-config/building_blocks
-config/email_remapping
 config/flawless.cfg
-config/known_errors
-config/third_party_whitelist
-config/watched_files
 examples/decorator_example.py
 examples/middleware_example.py
 flawless/__init__.py
@@ -26,11 +21,11 @@ flawless/client/decorators.py
 flawless/client/default.py
 flawless/client/middleware.py
 flawless/lib/__init__.py
+flawless/lib/storage.py
 flawless/lib/config/__init__.py
 flawless/lib/data_structures/__init__.py
 flawless/lib/data_structures/persistent_dictionary.py
 flawless/lib/data_structures/prefix_tree.py
-flawless/lib/data_structures/storage.py
 flawless/lib/data_structures/stubs.py
 flawless/lib/version_control/__init__.py
 flawless/lib/version_control/repo.py
