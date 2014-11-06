@@ -47,6 +47,7 @@ def _get_service():
 
     host, port = hostport.split(":")
     tsocket = TSocket.TSocket(host, int(port))
+    tsocket.setTimeout(2000)  # 2 second timeout
     transport = TTransport.TFramedTransport(tsocket)
     protocol = TBinaryProtocol.TBinaryProtocol(transport)
     client = Flawless.Client(protocol)

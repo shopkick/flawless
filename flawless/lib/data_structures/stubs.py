@@ -31,4 +31,13 @@ class StorageStub(object):
     def iteritems(self):
         return self.dict.iteritems()
 
+    def open(self):
+        pass
+
+    def sync(self):
+        pass
+
+    def close(self):
+        pass
+
 StorageInterface.register(StorageStub)

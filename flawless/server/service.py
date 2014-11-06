@@ -364,7 +364,7 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
         for stack_line in traceback:
             line_type = self._get_line_type(stack_line)
             if line_type == api_ttypes.LineType.THIRDPARTY_WHITELIST:
-                return None, None, None
+                return None, None, None, True
             elif line_type in [api_ttypes.LineType.DEFAULT, api_ttypes.LineType.KNOWN_ERROR]:
                 filepath = self.extract_base_path_pattern.match(stack_line.filename).group(1)
                 entry = api_ttypes.CodeIdentifier(filepath, stack_line.function_name, stack_line.text)
@@ -372,12 +372,19 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
                 key = api_ttypes.ErrorKey(filepath, stack_line.line_number, stack_line.function_name, stack_line.text)
                 if filepath in self.watch_all_errors:
                     email_recipients.extend(self.watch_all_errors[filepath])
-        return (key, blamed_entry, email_recipients)
+        return (key, blamed_entry, email_recipients, False)
 
     def _record_error(self, request):
+        log.info("Recieved error from %s for %s" % (request.hostname, request.exception_message))
+
         # Figure out which line in the stack trace is to blame for the error
-        key, blamed_entry, email_recipients = self._blame_line(request.traceback)
+        key, blamed_entry, email_recipients, was_whitelisted = self._blame_line(request.traceback)
         if not key:
+            if not was_whitelisted:
+                name_map = api_ttypes.LineType._VALUES_TO_NAMES
+                line_types = [(stack_line.filename, name_map.get(self._get_line_type(stack_line)))
+                              for stack_line in request.traceback]
+                log.info("Unable to blame: %s" % str(line_types))
             return
 
         # If this error hasn't been reported before, then find the dev responsible
