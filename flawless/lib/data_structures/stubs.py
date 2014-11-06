@@ -28,15 +28,6 @@ class StorageStub(object):
         self.partition = partition
         self.dict = dict()
 
-    def open(self):
-        pass
-
-    def sync(self):
-        pass
-
-    def close(self):
-        pass
-
     def iteritems(self):
         return self.dict.iteritems()
 

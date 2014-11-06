@@ -74,6 +74,91 @@ line of code text blank. Likewise, an entire file can be whitelisted by leaving 
 function blank.
 
 
+Example Email
+---------------------
+
+<pre><code><b>Traceback (most recent call last):</b>
+  File "/services/shopkick_pylons/shopkick_pylons-current/py/lib/python2.6/site-packages/flawless-0.1.4-py2.6.egg/flawless/client/middleware.py", line 34, in __call__
+     return self.app(environ, start_response) 
+  File "/services/shopkick_pylons/shopkick_pylons-current/py/lib/python2.6/site-packages/Beaker-1.6.4-py2.6.egg/beaker/middleware.py", line 73, in __call__
+     return self.app(environ, start_response) 
+  File "/services/shopkick_pylons/shopkick_pylons-current/py/lib/python2.6/site-packages/apps/shopkick/pylons/lib/json_api.py", line 66, in wrapped
+     return func(obj, **new_kwargs) 
+  File "/services/shopkick_pylons/shopkick_pylons-current/py/lib/python2.6/site-packages/apps/shopkick/pylons/controllers/user.py", line 535, in create_web_registration
+     return handler.run() # Returns json string 
+  File "/services/shopkick_pylons/shopkick_pylons-current/py/lib/python2.6/site-packages/apps/shopkick/pylons/controllers/user.py", line 2190, in run
+     session.commit() 
+  File "/services/shopkick_pylons/shopkick_pylons-current/py/lib/python2.6/site-packages/SQLAlchemy-0.7.1-py2.6-linux-x86_64.egg/sqlalchemy/orm/session.py", line 617, in commit
+     self.transaction.commit() 
+  File "/build/bdist.linux-x86_64/egg/MySQLdb/cursors.py", line 173, in execute
+     self.errorhandler(self, exc, value) 
+  File "/build/bdist.linux-x86_64/egg/MySQLdb/connections.py", line 36, in defaulterrorhandler
+     raise errorclass, errorvalue 
+IntegrityError('(IntegrityError) (1062, "Duplicate entry \'10229602058\' for key \'PRIMARY\'")',)
+
+
+<b>Stack Frame:</b>
+  <b>File "/services/shopkick_pylons/shopkick_pylons-current/py/lib/python2.6/site-packages/apps/shopkick/pylons/lib/json_api.py", line 66, in wrapped</b>
+    arg='self'
+    func=<function create_web_registration at 0x7f6c2acf35f0>
+    kwargs={'pylons': <pylons.util.PylonsContext object at 0x7f6a5c800190>, 'start_response': <function repl_start_response at 0x7f6a5c80fed8>, 'controller': u'user', 'environ': {'routes.route': <routes.route.Route object at 0x7f6c2a61b850>, 'mod_wsgi.listener_...
+    new_kwargs={}
+    obj=<apps.shopkick.pylons.controllers.user.UserController object at 0x7f6a5c800110>
+    self.request_info=JsonRequestInfo(logging_details_field_name='create_web_registration_request_details', web_authentication_type=0, logging_request_type=71, request_path='/shopkick/v1/user/create_web_registration')
+  <b>File "/services/shopkick_pylons/shopkick_pylons-current/py/lib/python2.6/site-packages/apps/shopkick/pylons/controllers/user.py", line 535, in create_web_registration</b>
+    client_platform=2
+    download_url_type=''
+    email=None
+    error_manager=<apps.shopkick.pylons.lib.web_registration_helpers.ErrorManager object at 0x7f6a5c800150>
+    facebook_access_token=None
+    first_name=None
+    gift_manager=<apps.shopkick.pylons.lib.gifts.GiftManager object at 0x7f6a5c800450>
+    gift_token=''
+    handler=<apps.shopkick.pylons.controllers.user.CreateWebRegistrationHandler object at 0x7f6a5c800f90>
+    invite_token=None
+    self._pylons_log_debug=False
+    self.start_response=<function repl_start_response at 0x7f6a5c80fed8>
+    user_service=<lib.thrift.utils.persistent_thrift_service.ThriftService object at 0x7f6c2a1f2410>
+    zip_code=None
+  <b>File "/services/shopkick_pylons/shopkick_pylons-current/py/lib/python2.6/site-packages/apps/shopkick/pylons/controllers/user.py", line 2190, in run</b>
+    b_resp=CreateWebRegistrationResponse(status=0, web_registration_id=10229602058)
+    create_web_registered_user=<function create_web_registered_user at 0x7f6a80faf9b0>
+    gift_resp=None
+    is_full_registration=False
+    is_new_web_registration=True
+    record=WebregRepingRecord(webreg_user_id=10229602058, encrypted_webreg_user_id='KIOTYQ97P7H8', client_platform=2, reping_status=0, created=None)
+    self.client_platform=2
+    self.download_url_type=''
+    self.email=None
+    self.error_manager=<apps.shopkick.pylons.lib.web_registration_helpers.ErrorManager object at 0x7f6a5c800150>
+    self.facebook_access_token=None
+    self.facebook_access_token_func=<function _facebook_user_id_from_access_token at 0x7f6c2ac719b0>
+    self.facebook_user_id=None
+    web_registration_id='KIOTYQ97P7H8'
+
+
+<b>Additional Information:</b>
+POST /shopkick/v1/user/create_web_registration HTTP/1.0
+Accept: application/json, text/javascript, */*; q=0.01
+Accept-Charset: utf-8, iso-8859-1, utf-16, *;q=0.7
+Accept-Encoding: gzip
+Accept-Language: en-us,en;q=0.9
+Cache-Control: max-age=43200
+Connection: close
+Content-Length: -1
+Content-Type: application/x-www-form-urlencoded
+Cookie: session_id=1E9DTWDVCQ7M8; __utma=151718139.482813466.1384371861.1384371861.1384832848.2; __utmb=151718139.2.9.1384832848; __utmc=151718139; __utmz=151718139.1384371861.1.1.utmcsr=google|utmccn=(organic)|utmcmd=organic|utmctr=shopkick
+Host: app.shopkick.com
+Origin: http://app.shopkick.com
+Referer: http://app.shopkick.com/download_page?launch_reg=1
+User-Agent: Mozilla/5.0 (Linux; U; Android 2.2.2; en-us; VM670 Build/FRG83G) AppleWebKit/533.1 (KHTML, like Gecko) Version/4.0 Mobile Safari/533.1
+X-Forwarded-For: 255.87.109.255
+X-Real-Ip: 255.87.109.255
+X-Requested-With: XMLHttpRequest
+
+gift_token=&download_url_type=&gift_token=
+</code></pre>
+
 Server User Interface
 ---------------------
 
@@ -100,78 +185,6 @@ parameters
        text - (required) Specify the full text that appears on line_number
        timestamp - (optional) Specify which week you want to view. Default is the current week.
 
-
-Configuration Files Reference
------------------------------
-
-**config/building\_blocks:** This is a list of library code functions that can raise an exception.
-Adding an entry here causes the blame to be transferred to the caller of the library
-rather than blaming the author of the library. See file for example.
-
-     Fields:
-       filename - The path to the file being whitelisted (not including the site-packages directory)
-       function_name - The name of the function being whitelisted. This value can be set to None to
-       act as a wildcard.
-       code_fragment - The actual text from the line of code being whitelisted. This value can be
-       set to None to act as a wildcard.
-
-
-**config/known\_errors:** This is a list of known errors that happen. Reporting can be customized to
-completely ignore the error, to only alert after a minimum number of occurrences; or to alert every
-N occurences. See file for example.
-
-     Fields:
-       filename - The path to the file being whitelisted (not including the site-packages directory)
-       function_name - The name of the function being whitelisted. This value can be set to None to
-       act as a wildcard.
-       code_fragment - The actual text from the line of code being whitelisted. This value can be
-       set to None to act as a wildcard.
-       min_alert_threshold - (optional) The minimum number of occurrences before Flawless will
-       report this error.
-       max_alert_threshold - (optional) The maximum number of occurrences before Flawless will
-       stop reporting this error
-       alert_every_n_occurences - (optional) Flawless will report this error every N occurrences
-       email_recipients - (optional) List of email addresses to include on error reports for this
-       error
-       email_header - (optional) Extra text to place at the top of emails for this error
-
-
-**config/third\_party\_whitelist:** This is a list of errors that can be generated by thirdparty
-libraries that should be completely ignored (ex: network connection errors). See file for example.
-
-     Fields:
-       filename - The path to the file being whitelisted (not including the site-packages directory)
-       function_name - The name of the function being whitelisted. This value can be set to None to
-       act as a wildcard.
-       code_fragment - The actual text from the line of code being whitelisted. This value can be
-       set to None to act as a wildcard
-
-
-**config/watched\_files:** This file allows developers to receive all alerts for errors related to
-a particular file. They can either register to receive any exception containing the file in the
-stacktrace, or to only receive alerts when the file is blamed for the exception. See file for
-example.
-
-     Fields:
-       email - Email address of the watcher
-       filepath - The path to the file being watched
-       watch_all_errors - If true, any exception that gets reported and contains this file in it's
-       traceback will be sent to the watcher. If false, the watcher will only receive reports
-       for which a line in the file was actually blamed for causing the error
-
-
-**config/email\_remapping:** Remap a developer's email address that is returned by git-blame to
-instead be mapped to a different email address. See file for example.
-
-     Fields:
-       remap - The email address that is being remapped
-       to - The email address that should actually receive the error reports
-
-
-**config/flawless.cfg:** Contains all the configuration settings for the Flawless server. To view a
-list of configuration options, run the following command.
-
-    $> flawless options
 
 
 
