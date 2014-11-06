@@ -45,6 +45,11 @@ struct ErrorInfo {
     7: RecordErrorRequest last_error_data
 }
 
+struct EmailRemapping {
+    1: map<string, string> remap = {}
+    2: i64 last_update_ts
+}
+
 struct WatchFileEntry {
     1: string email
     2: string filepath
@@ -52,7 +57,7 @@ struct WatchFileEntry {
 }
 
 struct WatchList {
-    1: list<WatchFileEntry> watches
+    1: list<WatchFileEntry> watches = []
     2: i64 last_update_ts
 }
 
@@ -68,7 +73,7 @@ struct KnownError {
 }
 
 struct KnownErrorList {
-    1: list<KnownError> known_errors
+    1: list<KnownError> identifiers = []
     2: i64 last_update_ts
 }
 
@@ -79,7 +84,7 @@ struct CodeIdentifier {
 }
 
 struct CodeIdentifierList {
-    1: list<CodeIdentifier> identifiers
+    1: list<CodeIdentifier> identifiers = []
     2: i64 last_update_ts
 }
 

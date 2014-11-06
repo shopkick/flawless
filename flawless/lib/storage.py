@@ -24,17 +24,17 @@ class StorageInterface(object):
     it into flawless.server.server.serve. Then it is possible to have the flawless server be horizontally scalable
     since the database serves as the centralized source of truth.
 
-    It is worth noting is that the keys used in this interface are instances of api_ttypes.ErrorKey and the
-    values are instances of api_ttypes.ErrorInfo
+    It is worth noting is that the keys used in this interface are either python primitives (string, list, etc) or
+    thrift objects. The values can also be python primitives (list, dictionary, etc) or thrift objects
     """
 
     __metaclass__ = abc.ABCMeta
 
-    def __init__(self, week_prefix):
-        """week_prefix is a string used to partition keys by week. For instance, with disk storage, we create a new
-        file for every unique week_prefix. For a database you may want to consider prepending all keys with
-        week_prefix."""
-        self.week_prefix = week_prefix
+    def __init__(self, partition):
+        """partition is a string used to partition keys by week. For instance, with disk storage, we create a new
+        file for every unique partition. For a database you may want to consider prepending all keys with
+        partition. For accessing config data, the partition is None"""
+        self.partition = partition
 
     def open(self):
         """Called to create connection to storage"""
@@ -50,7 +50,7 @@ class StorageInterface(object):
 
     @abc.abstractmethod
     def iteritems(self):
-        """Should return iterator of tuples (key, value) for all entries for the given self.week_prefix"""
+        """Should return iterator of tuples (key, value) for all entries for the given self.partition"""
         pass
 
     @abc.abstractmethod
@@ -59,7 +59,7 @@ class StorageInterface(object):
 
     @abc.abstractmethod
     def __getitem__(self, key):
-        """Should raise KeyError if key does not exist"""
+        """Should return None if key does not exist"""
         pass
 
     @abc.abstractmethod
@@ -71,14 +71,20 @@ class DiskStorage(object):
 
     __metaclass__ = ProxyContainerMethodsMetaClass
 
-    def __init__(self, week_prefix):
-        self.week_prefix = week_prefix
+    def __init__(self, partition):
+        self.partition = partition
         config = flawless.lib.config.get()
-        filepath = os.path.join(config.data_dir_path, "flawless-errors-", week_prefix)
+        if self.partition:
+            filepath = os.path.join(config.data_dir_path, "flawless-errors-", partition)
+        else:
+            filepath = os.path.join(config.data_dir_path, "flawless-whitelists-config")
         self.disk_dict = PersistentDictionary(filepath)
 
     def _proxyfunc_(attr, self, *args, **kwargs):
-        return getattr(self.disk_dict, attr)(*args, **kwargs)
+        try:
+            return getattr(self.disk_dict, attr)(*args, **kwargs)
+        except KeyError:
+            return None
 
     def open(self):
         self.disk_dict.open()

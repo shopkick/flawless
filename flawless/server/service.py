@@ -23,7 +23,6 @@ import logging
 import os
 import os.path
 import re
-import shutil
 import smtplib
 import subprocess
 import sys
@@ -35,14 +34,14 @@ import urlparse
 
 import flawless.lib.config
 from flawless.lib.data_structures import prefix_tree
-from flawless.lib.data_structures.storage import DiskStorage
+from flawless.lib.storage import DiskStorage
 from flawless.lib.version_control.repo import get_repository
 import flawless.server.api.ttypes as api_ttypes
 
 try:
-    import simplejson as json
+    import pprint
 except:
-    import json
+    pprint = None
 
 
 log = logging.getLogger(__name__)
@@ -68,23 +67,8 @@ def code_identifier_equality(self, other):
 
     return True
 
-
-def code_identifier_to_json(self):
-    return dump_json(dict((k, v) for k, v in self.__dict__.items() if v))
-
-
-def dump_json(obj):
-    return json.dumps(
-        obj,
-        indent=2,
-        separators=(',', ': '),
-        default=lambda o: dict((k, v) for k, v in o.__dict__.items() if v is not None),
-    )
-
 api_ttypes.CodeIdentifier.__eq__ = code_identifier_equality
-api_ttypes.CodeIdentifier.to_json = code_identifier_to_json
 api_ttypes.KnownError.__eq__ = code_identifier_equality
-api_ttypes.KnownError.to_json = code_identifier_to_json
 api_ttypes.ErrorKey.__hash__ = lambda self: reduce(lambda x, y: x ^ hash(y), self.__dict__.iteritems(), 1)
 
 
@@ -93,50 +77,56 @@ api_ttypes.ErrorKey.__hash__ = lambda self: reduce(lambda x, y: x ^ hash(y), sel
 class FlawlessServiceBaseClass(object):
     """Contains numerous shared helper functions for the ThriftService & WebService classes"""
 
-    def __init__(self, storage_cls=DiskStorage,
+    def __init__(self,
+                 storage_cls=DiskStorage,
                  thread_cls=threading.Thread,
-                 open_file_func=open, open_process_func=subprocess.Popen,
-                 smtp_client_cls=smtplib.SMTP, time_func=time.time):
-        self.storage_cls = storage_cls
-        self.thread_cls = thread_cls
-        self.open_file_func = open_file_func
-        self.open_process_func = open_process_func
-        self.smtp_client_cls = smtp_client_cls
-        self.time_func = time_func
-
-        self.building_blocks = self._parse_whitelist_file("building_blocks", api_ttypes.CodeIdentifier)
-        self.third_party_whitelist = self._parse_whitelist_file("third_party_whitelist", api_ttypes.CodeIdentifier)
-        self.known_errors = self._parse_whitelist_file("known_errors", api_ttypes.KnownError)
-
+                 open_process_func=subprocess.Popen,
+                 smtp_client_cls=smtplib.SMTP,
+                 time_func=time.time):
+        self.__dict__.update({k: v for k, v in locals().iteritems() if k != 'self'})
         self.extract_base_path_pattern = re.compile('^.*/%s/?(.*)$' % config.report_runtime_package_directory_name)
         self.raise_exception_pattern = re.compile('^\s*raise[ \n]')
         self.only_blame_patterns = [re.compile(p) for p in config.only_blame_filepaths_matching]
+        self._read_whitelist_configs()
 
     ############################## Parse Config Files ##############################
 
-    def _read_json_file(self, filename):
-        # All configuration files are stored a json lists. The convention in this package
-        # is to treats all strings in the top level list as comments
-        with self.open_file_func(os.path.join(config.config_dir_path, filename), "r") as fh:
-            return [o for o in json.loads(fh.read().strip()) if not isinstance(o, basestring)]
+    def _read_whitelist_configs(self):
+        config_storage = self.storage_cls(partition=None)
+        config_storage.open()
 
-    def _parse_whitelist_file(self, filename, parsed_cls):
+        # Whitelists
+        self.building_blocks = self._parse_whitelist(config_storage["building_blocks"] or
+                                                     api_ttypes.CodeIdentifierList())
+        self.third_party_whitelist = self._parse_whitelist(config_storage["third_party_whitelist"] or
+                                                           api_ttypes.CodeIdentifierList())
+        self.known_errors = self._parse_whitelist(config_storage["known_errors"] or
+                                                  api_ttypes.KnownErrorList())
+
+        # Watchers
+        self.watch_all_errors, self.watch_only_if_blamed = self._parse_watchers_file(config_storage["watch_list"] or
+                                                                                     api_ttypes.WatchList())
+
+        # Email remapping
+        self.email_remapping = config_storage["email_remapping"] or api_ttypes.EmailRemapping()
+
+        config_storage.close()
+
+    def _parse_whitelist(self, code_identifier_list):
         parsed_objs = collections.defaultdict(list)
-        for json_entry in self._read_json_file(filename):
-            py_entry = parsed_cls(**json_entry)
-            parsed_objs[py_entry.filename].append(py_entry)
+        for item in code_identifier_list.identifiers:
+            parsed_objs[item.filename].append(item)
         return parsed_objs
 
-    def _parse_watchers_file(self, filename):
+    def _parse_watchers_file(self, watch_list):
         all_error_tree = prefix_tree.FilePathTree()
         blame_only_tree = prefix_tree.FilePathTree()
 
-        for watch in self._read_json_file(filename):
-            py_entry = api_ttypes.WatchFileEntry(**watch)
-            tree = all_error_tree if py_entry.watch_all_errors else blame_only_tree
-            if py_entry.filepath not in tree:
-                tree[py_entry.filepath] = list()
-            tree[py_entry.filepath].append(py_entry.email)
+        for watch in watch_list.watches:
+            tree = all_error_tree if watch.watch_all_errors else blame_only_tree
+            if watch.filepath not in tree:
+                tree[watch.filepath] = list()
+            tree[watch.filepath].append(watch.email)
 
         # Set all_error_tree to have accumulator that will allow us to find everyone who was watching
         # the file or a parent of the file
@@ -149,15 +139,18 @@ class FlawlessServiceBaseClass(object):
 
     ############################## Timestamp Helpers ##############################
 
-    def _week_prefix_for_ms(self, epoch_ms):
+    def _partition_for_ms(self, epoch_ms):
         timestamp_date = self._convert_epoch_ms(cls=datetime.date, epoch_ms=epoch_ms)
         timestamp_date = timestamp_date - datetime.timedelta(days=timestamp_date.isoweekday() % 7)
         file_path = os.path.join(config.data_dir_path, "flawless-errors-" + timestamp_date.strftime("%Y-%m-%d"))
         return file_path
 
+    def _epoch_ms(self):
+        return int(self.time_func() * 1000)
+
     def _convert_epoch_ms(self, cls, epoch_ms=None):
         if not epoch_ms:
-            epoch_ms = int(self.time_func() * 1000)
+            epoch_ms = self._epoch_ms()
         return cls.fromtimestamp(epoch_ms / 1000.)
 
     ############################## Traceback/Line Type Helpers ##############################
@@ -257,8 +250,6 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
     def __init__(self, *args, **kwargs):
         super(FlawlessThriftServiceHandler, self).__init__(*args, **kwargs)
         self.number_of_git_blames_running = 0
-        self.email_remapping = dict((e["remap"], e["to"]) for e in self._read_json_file("email_remapping"))
-        self.watch_all_errors, self.watch_only_if_blamed = self._parse_watchers_file("watched_files")
 
         self.repository = get_repository(open_process_func=self.open_process_func)
 
@@ -273,17 +264,18 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
     ############################## Update Thread ##############################
 
     def _refresh_errors_seen(self, epoch_ms=None):
-        prefix = self._week_prefix_for_ms(epoch_ms)
+        prefix = self._partition_for_ms(epoch_ms)
         with self.lock:
             if self.errors_seen is None:
                 self.errors_seen = self.storage_cls(prefix)
                 self.errors_seen.open()
-            elif prefix != self.errors_seen.week_prefix:
+            elif prefix != self.errors_seen.partition:
                 # Order matters here since there can be a race condition if not done correctly
                 old_errors_seen = self.errors_seen
                 new_errors_seen = self.storage_cls(prefix)
                 new_errors_seen.open()
                 self.errors_seen = new_errors_seen
+                old_errors_seen.sync()
                 old_errors_seen.close()
 
     def _run_background_update_thread(self):
@@ -293,6 +285,7 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
                 lambda: self.errors_seen.sync(),
                 lambda: self._refresh_errors_seen(),
                 lambda: self.repository.update(),
+                lambda: self._read_whitelist_configs(),
             ]
             # Run all items in try/except block because we don't want our background thread
             # to die.
@@ -336,11 +329,11 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
         if not email or "@" not in email:
             return None
 
-        if email in self.email_remapping:
-            return self.email_remapping[email]
+        if email in self.email_remapping.remap:
+            return self.email_remapping.remap[email]
         prefix, domain = email.split("@", 2)
-        if prefix in self.email_remapping:
-            return self.email_remapping[prefix]
+        if prefix in self.email_remapping.remap:
+            return self.email_remapping.remap[prefix]
         if "." not in domain or config.ignore_vcs_email_domain:
             return "%s@%s" % (prefix, config.email_domain_name)
         return email
@@ -508,10 +501,30 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
         return self.get_weekly_error_report(*args, **kwargs)
 
     def _get_errors_seen_for_ts(self, timestamp):
-        prefix = self._week_prefix_for_ms(int(timestamp) * 1000 if timestamp else None)
+        prefix = self._partition_for_ms(int(timestamp) * 1000 if timestamp else None)
         errors_seen = self.storage_cls(prefix)
         errors_seen.open()
         return errors_seen
+
+    def _add_new_entry_to_config(self, key, entry, attr='identifiers'):
+        class_map = dict(known_errors=api_ttypes.KnownErrorList,
+                         building_blocks=api_ttypes.CodeIdentifierList,
+                         third_party_whitelist=api_ttypes.CodeIdentifierList,
+                         watch_list=api_ttypes.WatchList)
+        config_storage = self.storage_cls(partition=None)
+        config_storage.open()
+        current_value = config_storage[key] or class_map[key]()
+        getattr(current_value, attr).append(entry)
+        current_value.last_update_ts = self._epoch_ms()
+        config_storage[key] = current_value
+        config_storage.sync()
+        config_storage.close()
+
+    def _construct_instance(self, params, cls):
+        init_args = inspect.getargspec(cls.__init__).args
+        whitelist_attrs = [s for s in init_args if s != 'self']
+        new_entry = cls(**dict((k, params.get(k)) for k in whitelist_attrs))
+        return new_entry
 
     def get_weekly_error_report(self, timestamp=None, include_known_errors=False,
                                 include_modified_before_min_date=False):
@@ -553,10 +566,11 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
         errors_seen = self._get_errors_seen_for_ts(timestamp)
         err_key = api_ttypes.ErrorKey(filename=filename, function_name=function_name,
                                       text=text, line_number=line_number)
-        try:
-            err_info = errors_seen[err_key]
+
+        err_info = errors_seen[err_key]
+        if err_info:
             datastr = self._format_traceback(err_info.last_error_data)
-        except KeyError:
+        else:
             datastr = "Not Found"
 
         return """
@@ -646,22 +660,117 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
         params = dict(urlparse.parse_qsl(request))
         class_map = dict(known_errors=api_ttypes.KnownError, building_blocks=api_ttypes.CodeIdentifier,
                          third_party_whitelist=api_ttypes.CodeIdentifier)
-        cls = class_map[params['type']]
-        init_args = inspect.getargspec(cls.__init__).args
+        new_entry = self._construct_instance(params, class_map[params['type']])
+        self._add_new_entry_to_config(params['type'], new_entry)
 
-        whitelist_attrs = [s for s in init_args if s != 'self']
-        new_entry = cls(**dict((k, params.get(k)) for k in whitelist_attrs))
-        filename = os.path.join(config.config_dir_path, params['type'])
-
-        with self.open_file_func(filename, "r") as fh:
-            contents = json.load(fh)
-        with self.open_file_func(filename + ".tmp", "w") as fh:
-            contents.append(new_entry)
-            fh.write(dump_json(contents))
-        shutil.move(filename + ".tmp", filename)
-
-        getattr(self, params['type'])[new_entry.filename].append(new_entry)
         return "<html><body>SUCCESS</body></html>"
+
+    def add_watch(self):
+        return """
+            <html>
+                <head>
+                    <title>Add Watch</title>
+                </head>
+                <body>
+                <div>
+                    Instructions: Fill out the file path & email to send reports to.
+                </div><br /><br />
+                <form action='save_watch' method='POST'>
+                    <table>
+                        <tr><td>* = Required</td></tr>
+                        <tr>
+                            <td>* File Path:</td>
+                            <td><input name='filepath' type='text' size='50'/></td>
+                        </tr>
+                        <tr>
+                            <td>* Email:</td>
+                            <td><input name='email' type='text' size='50'/></td>
+                        </tr>
+                        <tr>
+                            <td>* Watch Type:</td>
+                            <td>
+                                <select name='watch_all_errors'>
+                                    <option value='true' selected>Any Error</option>
+                                    <option value='false'>Only Blamed Errors</option>
+                                </select>
+                            </td>
+                        </tr>
+                    </table>
+                    <input type='submit'></input>
+                </form>
+             </body>
+            </html>
+        """
+
+    def save_watch(self, request):
+        params = dict(urlparse.parse_qsl(request))
+        params['watch_all_errors'] = params['watch_all_errors'] == 'true'
+        new_entry = self._construct_instance(params, api_ttypes.WatchFileEntry)
+        self._add_new_entry_to_config("watch_list", new_entry, attr="watches")
+        return "<html><body>SUCCESS</body></html>"
+
+    def remap_email(self):
+        return """
+            <html>
+                <head>
+                    <title>Remap Email</title>
+                </head>
+                <body>
+                <div>
+                    Instructions: Fill out the old email & the new email to send reports to.
+                </div><br /><br />
+                <form action='save_remap_email' method='POST'>
+                    <table>
+                        <tr><td>* = Required</td></tr>
+                        <tr>
+                            <td>* Old Email:</td>
+                            <td><input name='old_email' type='text' size='50'/></td>
+                        </tr>
+                        <tr>
+                            <td>* New Email:</td>
+                            <td><input name='new_email' type='text' size='50'/></td>
+                        </tr>
+                    </table>
+                    <input type='submit'></input>
+                </form>
+             </body>
+            </html>
+        """
+
+    def save_remap_email(self, request):
+        params = dict(urlparse.parse_qsl(request))
+        config_storage = self.storage_cls(partition=None)
+        config_storage.open()
+        current_value = config_storage["email_remapping"] or api_ttypes.EmailRemapping()
+        current_value.remap[params["old_email"]] = params["new_email"]
+        current_value.last_update_ts = self._epoch_ms()
+        config_storage["email_remapping"] = current_value
+        config_storage.sync()
+        config_storage.close()
+        return "<html><body>SUCCESS</body></html>"
+
+    def view_config(self, key):
+        config_storage = self.storage_cls(partition=None)
+        config_storage.open()
+        current_value = config_storage[key]
+        config_storage.close()
+
+        if pprint:
+            data = pprint.pformat(current_value)
+        else:
+            data = str(current_value)
+
+        data = data.replace("\n", "<br />")
+        return """
+            <html>
+                <head>
+                    <title>Flawless Config</title>
+                </head>
+                <body style='font-family: courier; font-size: 10pt'>
+                    {data}
+                </body>
+            </html>
+        """.format(data=data)
 
     def check_health(self):
         parts = ["<html><body>OK<br/>"]

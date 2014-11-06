@@ -49,7 +49,7 @@ class PersistentDictionary(object):
             shutil.move(self.file_path + ".tmp", self.file_path)
 
     def close(self):
-        self.sync()
+        pass
 
     def get_path(self):
         return self.file_path

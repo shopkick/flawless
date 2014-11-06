@@ -15,6 +15,7 @@ import logging
 import os
 import os.path
 from SocketServer import ThreadingMixIn
+import signal
 import sys
 import urlparse
 
@@ -24,7 +25,7 @@ from thrift.transport import TSocket
 from thrift.transport import TTransport
 
 import flawless.lib.config
-from flawless.lib.data_structures.storage import DiskStorage
+from flawless.lib.storage import DiskStorage
 from flawless.server.api import Flawless
 from flawless.server.service import FlawlessThriftServiceHandler
 from flawless.server.service import FlawlessWebServiceHandler
@@ -103,7 +104,8 @@ def serve(conf_path, storage_cls=DiskStorage):
     if not os.path.exists(config.data_dir_path):
         os.makedirs(config.data_dir_path)
 
-    if os.fork() == 0:
+    child_pid = os.fork()
+    if child_pid == 0:
         # Setup HTTP server
         logging.basicConfig(level=getattr(logging, config.log_level), filename=config.log_file, stream=sys.stderr)
         handler = FlawlessWebServiceHandler(storage_cls=storage_cls)
@@ -128,6 +130,7 @@ def serve(conf_path, storage_cls=DiskStorage):
         except (KeyboardInterrupt, SystemExit):
             handler.errors_seen.sync()
             transport.close()
+            os.kill(child_pid, signal.SIGQUIT)
 
 
 def main():

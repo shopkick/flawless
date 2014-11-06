@@ -511,6 +511,92 @@ class ErrorInfo:
   def __ne__(self, other):
     return not (self == other)
 
+class EmailRemapping:
+  """
+  Attributes:
+   - remap
+   - last_update_ts
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.MAP, 'remap', (TType.STRING,None,TType.STRING,None), {
+    }, ), # 1
+    (2, TType.I64, 'last_update_ts', None, None, ), # 2
+  )
+
+  def __init__(self, remap=thrift_spec[1][4], last_update_ts=None,):
+    if remap is self.thrift_spec[1][4]:
+      remap = {
+    }
+    self.remap = remap
+    self.last_update_ts = last_update_ts
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.MAP:
+          self.remap = {}
+          (_ktype17, _vtype18, _size16 ) = iprot.readMapBegin() 
+          for _i20 in xrange(_size16):
+            _key21 = iprot.readString();
+            _val22 = iprot.readString();
+            self.remap[_key21] = _val22
+          iprot.readMapEnd()
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.I64:
+          self.last_update_ts = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('EmailRemapping')
+    if self.remap is not None:
+      oprot.writeFieldBegin('remap', TType.MAP, 1)
+      oprot.writeMapBegin(TType.STRING, TType.STRING, len(self.remap))
+      for kiter23,viter24 in self.remap.items():
+        oprot.writeString(kiter23)
+        oprot.writeString(viter24)
+      oprot.writeMapEnd()
+      oprot.writeFieldEnd()
+    if self.last_update_ts is not None:
+      oprot.writeFieldBegin('last_update_ts', TType.I64, 2)
+      oprot.writeI64(self.last_update_ts)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
 class WatchFileEntry:
   """
   Attributes:
@@ -604,11 +690,15 @@ class WatchList:
 
   thrift_spec = (
     None, # 0
-    (1, TType.LIST, 'watches', (TType.STRUCT,(WatchFileEntry, WatchFileEntry.thrift_spec)), None, ), # 1
+    (1, TType.LIST, 'watches', (TType.STRUCT,(WatchFileEntry, WatchFileEntry.thrift_spec)), [
+    ], ), # 1
     (2, TType.I64, 'last_update_ts', None, None, ), # 2
   )
 
-  def __init__(self, watches=None, last_update_ts=None,):
+  def __init__(self, watches=thrift_spec[1][4], last_update_ts=None,):
+    if watches is self.thrift_spec[1][4]:
+      watches = [
+    ]
     self.watches = watches
     self.last_update_ts = last_update_ts
 
@@ -624,11 +714,11 @@ class WatchList:
       if fid == 1:
         if ftype == TType.LIST:
           self.watches = []
-          (_etype19, _size16) = iprot.readListBegin()
-          for _i20 in xrange(_size16):
-            _elem21 = WatchFileEntry()
-            _elem21.read(iprot)
-            self.watches.append(_elem21)
+          (_etype28, _size25) = iprot.readListBegin()
+          for _i29 in xrange(_size25):
+            _elem30 = WatchFileEntry()
+            _elem30.read(iprot)
+            self.watches.append(_elem30)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -650,8 +740,8 @@ class WatchList:
     if self.watches is not None:
       oprot.writeFieldBegin('watches', TType.LIST, 1)
       oprot.writeListBegin(TType.STRUCT, len(self.watches))
-      for iter22 in self.watches:
-        iter22.write(oprot)
+      for iter31 in self.watches:
+        iter31.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.last_update_ts is not None:
@@ -748,10 +838,10 @@ class KnownError:
       elif fid == 6:
         if ftype == TType.LIST:
           self.email_recipients = []
-          (_etype26, _size23) = iprot.readListBegin()
-          for _i27 in xrange(_size23):
-            _elem28 = iprot.readString();
-            self.email_recipients.append(_elem28)
+          (_etype35, _size32) = iprot.readListBegin()
+          for _i36 in xrange(_size32):
+            _elem37 = iprot.readString();
+            self.email_recipients.append(_elem37)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -798,8 +888,8 @@ class KnownError:
     if self.email_recipients is not None:
       oprot.writeFieldBegin('email_recipients', TType.LIST, 6)
       oprot.writeListBegin(TType.STRING, len(self.email_recipients))
-      for iter29 in self.email_recipients:
-        oprot.writeString(iter29)
+      for iter38 in self.email_recipients:
+        oprot.writeString(iter38)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.email_header is not None:
@@ -831,18 +921,22 @@ class KnownError:
 class KnownErrorList:
   """
   Attributes:
-   - known_errors
+   - identifiers
    - last_update_ts
   """
 
   thrift_spec = (
     None, # 0
-    (1, TType.LIST, 'known_errors', (TType.STRUCT,(KnownError, KnownError.thrift_spec)), None, ), # 1
+    (1, TType.LIST, 'identifiers', (TType.STRUCT,(KnownError, KnownError.thrift_spec)), [
+    ], ), # 1
     (2, TType.I64, 'last_update_ts', None, None, ), # 2
   )
 
-  def __init__(self, known_errors=None, last_update_ts=None,):
-    self.known_errors = known_errors
+  def __init__(self, identifiers=thrift_spec[1][4], last_update_ts=None,):
+    if identifiers is self.thrift_spec[1][4]:
+      identifiers = [
+    ]
+    self.identifiers = identifiers
     self.last_update_ts = last_update_ts
 
   def read(self, iprot):
@@ -856,12 +950,12 @@ class KnownErrorList:
         break
       if fid == 1:
         if ftype == TType.LIST:
-          self.known_errors = []
-          (_etype33, _size30) = iprot.readListBegin()
-          for _i34 in xrange(_size30):
-            _elem35 = KnownError()
-            _elem35.read(iprot)
-            self.known_errors.append(_elem35)
+          self.identifiers = []
+          (_etype42, _size39) = iprot.readListBegin()
+          for _i43 in xrange(_size39):
+            _elem44 = KnownError()
+            _elem44.read(iprot)
+            self.identifiers.append(_elem44)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -880,11 +974,11 @@ class KnownErrorList:
       oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
       return
     oprot.writeStructBegin('KnownErrorList')
-    if self.known_errors is not None:
-      oprot.writeFieldBegin('known_errors', TType.LIST, 1)
-      oprot.writeListBegin(TType.STRUCT, len(self.known_errors))
-      for iter36 in self.known_errors:
-        iter36.write(oprot)
+    if self.identifiers is not None:
+      oprot.writeFieldBegin('identifiers', TType.LIST, 1)
+      oprot.writeListBegin(TType.STRUCT, len(self.identifiers))
+      for iter45 in self.identifiers:
+        iter45.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.last_update_ts is not None:
@@ -1002,11 +1096,15 @@ class CodeIdentifierList:
 
   thrift_spec = (
     None, # 0
-    (1, TType.LIST, 'identifiers', (TType.STRUCT,(CodeIdentifier, CodeIdentifier.thrift_spec)), None, ), # 1
+    (1, TType.LIST, 'identifiers', (TType.STRUCT,(CodeIdentifier, CodeIdentifier.thrift_spec)), [
+    ], ), # 1
     (2, TType.I64, 'last_update_ts', None, None, ), # 2
   )
 
-  def __init__(self, identifiers=None, last_update_ts=None,):
+  def __init__(self, identifiers=thrift_spec[1][4], last_update_ts=None,):
+    if identifiers is self.thrift_spec[1][4]:
+      identifiers = [
+    ]
     self.identifiers = identifiers
     self.last_update_ts = last_update_ts
 
@@ -1022,11 +1120,11 @@ class CodeIdentifierList:
       if fid == 1:
         if ftype == TType.LIST:
           self.identifiers = []
-          (_etype40, _size37) = iprot.readListBegin()
-          for _i41 in xrange(_size37):
-            _elem42 = CodeIdentifier()
-            _elem42.read(iprot)
-            self.identifiers.append(_elem42)
+          (_etype49, _size46) = iprot.readListBegin()
+          for _i50 in xrange(_size46):
+            _elem51 = CodeIdentifier()
+            _elem51.read(iprot)
+            self.identifiers.append(_elem51)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -1048,8 +1146,8 @@ class CodeIdentifierList:
     if self.identifiers is not None:
       oprot.writeFieldBegin('identifiers', TType.LIST, 1)
       oprot.writeListBegin(TType.STRUCT, len(self.identifiers))
-      for iter43 in self.identifiers:
-        iter43.write(oprot)
+      for iter52 in self.identifiers:
+        iter52.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.last_update_ts is not None:

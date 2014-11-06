@@ -50,46 +50,42 @@ class BaseTestCase(unittest.TestCase):
         self.smtp_stub = SMTPClientStub()
         self.file_open_stub = OpenFileStub()
 
-        self.watchers = [
-            "TEST COMMENT",
-            {
-                "email": "wilfred@shopkick.com",
-                "filepath": "tools/furminator.py",
-                "watch_all_errors": True,
-            },
-            {
-                "email": "lassie@shopkick.com",
-                "filepath": "tools/furminator.py",
-                "watch_all_errors": True,
-            },
-            "TEST COMMENT",
-            {
-                "email": "wishbone@shopkick.com",
-                "filepath": "lib/no/such/path/for/testing.py",
-                "watch_all_errors": True,
-            },
-        ]
+        self.watchers = api_ttypes.WatchList([
+            api_ttypes.WatchFileEntry(
+                email="wilfred@shopkick.com",
+                filepath="tools/furminator.py",
+                watch_all_errors=True,
+            ),
 
-        self.third_party_whitelist = [
-            "TEST COMMENT",
+            api_ttypes.WatchFileEntry(
+                email="lassie@shopkick.com",
+                filepath="tools/furminator.py",
+                watch_all_errors=True,
+            ),
+            api_ttypes.WatchFileEntry(
+                email="wishbone@shopkick.com",
+                filepath="lib/no/such/path/for/testing.py",
+                watch_all_errors=True,
+            ),
+        ])
+
+        self.third_party_whitelist = api_ttypes.CodeIdentifierList([
             api_ttypes.CodeIdentifier('facebook.py', 'post_treat_to_facebook',
                                       'urllib.urlencode(args), post_data)'),
-            "TEST COMMENT",
             api_ttypes.CodeIdentifier(
                 'SQLAlchemy-0.5.6-py2.6.egg/sqlalchemy/pool.py',
                 'do_get',
                 'raise exc.TimeoutError("QueuePool limit of size %d overflow %d ',
             ),
-        ]
+        ])
 
-        self.known_errors = [
+        self.known_errors = api_ttypes.KnownErrorList([
             api_ttypes.KnownError(
                 'lib/doghouse/authentication.py',
                 'check_auth',
                 'raise errors.BadAuthenticationError("Something smells off...")',
                 max_alert_threshold=0,
             ),
-            "TEST COMMENT",
             api_ttypes.KnownError(
                 filename='coreservices/waterbowl/rewards/water.py',
                 function_name='make_external_api_ttypes_request',
@@ -99,22 +95,20 @@ class BaseTestCase(unittest.TestCase):
                 email_header='NOTE: This error typically does not require dev team involvement.',
                 alert_every_n_occurences=1,
             ),
-        ]
+        ])
 
-        self.building_blocks = [
-            "TEST COMMENT",
+        self.building_blocks = api_ttypes.CodeIdentifierList([
             api_ttypes.CodeIdentifier('apps/shopkick/doghouse/lib/base.py',
                                       '_get_request_param',
                                       'raise errors.BadRequestError("Missing param %s" % name)'),
-        ]
+        ])
 
-        self.file_open_stub.set_file('../config/building_blocks', dump_json(self.building_blocks))
-
-        self.file_open_stub.set_file('../config/third_party_whitelist',
-                                     dump_json(self.third_party_whitelist))
-        self.file_open_stub.set_file('../config/known_errors', dump_json(self.known_errors))
-        self.file_open_stub.set_file('../config/email_remapping', dump_json([]))
-        self.file_open_stub.set_file('../config/watched_files', dump_json(self.watchers))
+        self.config_storage_stub = StorageStub(partition=None)
+        self.config_storage_stub["watch_list"] = self.watchers
+        self.config_storage_stub["third_party_whitelist"] = self.third_party_whitelist
+        self.config_storage_stub["known_errors"] = self.known_errors
+        self.config_storage_stub["building_blocks"] = self.building_blocks
+        self.errors_storage_stub = StorageStub(partition=None)
 
         self.saved_config = copy.deepcopy(flawless.lib.config.get().__dict__)
         self.test_config = flawless.lib.config.get()
@@ -132,10 +126,9 @@ class BaseTestCase(unittest.TestCase):
 
         self.handler = FlawlessThriftServiceHandler(
             open_process_func=self.popen_stub,
-            storage_cls=StorageStub,
+            storage_cls=lambda partition: self.errors_storage_stub if partition else self.config_storage_stub,
             smtp_client_cls=self.smtp_stub,
             time_func=lambda: self.stub_time,
-            open_file_func=self.file_open_stub,
             thread_cls=ThreadStub,
         )
 
