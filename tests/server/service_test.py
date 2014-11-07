@@ -121,7 +121,7 @@ class BaseTestCase(unittest.TestCase):
             r"lib/.*",
             r"tools/.*",
         ]
-        self.test_config.report_runtime_package_directory_name = "site-packages"
+        self.test_config.report_runtime_package_directory_names = ["site-packages"]
         self.test_config.config_dir_path = "../config"
 
         self.handler = FlawlessThriftServiceHandler(

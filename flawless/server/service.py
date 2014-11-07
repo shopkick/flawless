@@ -84,7 +84,8 @@ class FlawlessServiceBaseClass(object):
                  smtp_client_cls=smtplib.SMTP,
                  time_func=time.time):
         self.__dict__.update({k: v for k, v in locals().iteritems() if k != 'self'})
-        self.extract_base_path_pattern = re.compile('^.*/%s/?(.*)$' % config.report_runtime_package_directory_name)
+        self.extract_base_path_patterns = [re.compile('^.*/%s/?(.*)$' % d) for d in
+                                           config.report_runtime_package_directory_names]
         self.raise_exception_pattern = re.compile('^\s*raise[ \n]')
         self.only_blame_patterns = [re.compile(p) for p in config.only_blame_filepaths_matching]
         self._read_whitelist_configs()
@@ -156,11 +157,10 @@ class FlawlessServiceBaseClass(object):
     ############################## Traceback/Line Type Helpers ##############################
 
     def _get_line_type(self, line):
-        match = self.extract_base_path_pattern.match(line.filename)
-        if not match:
+        filepath = self._get_basepath(line.filename)
+        if not filepath:
             return api_ttypes.LineType.BAD_FILEPATH
 
-        filepath = match.group(1)
         entry = api_ttypes.CodeIdentifier(filepath, line.function_name, line.text)
         if entry in self.third_party_whitelist[filepath]:
             return api_ttypes.LineType.THIRDPARTY_WHITELIST
@@ -185,6 +185,13 @@ class FlawlessServiceBaseClass(object):
             if pattern.match(filepath):
                 return True
         return False
+
+    def _get_basepath(self, filename):
+        for pattern in self.extract_base_path_patterns:
+            match = pattern.match(filename)
+            if match:
+                return match.group(1)
+        return None
 
     def _format_traceback(self, request, append_locals=True, show_full_stack=False,
                           linebreak="<br />", spacer="&nbsp;", start_bold="<strong>",
@@ -366,7 +373,7 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
             if line_type == api_ttypes.LineType.THIRDPARTY_WHITELIST:
                 return None, None, None, True
             elif line_type in [api_ttypes.LineType.DEFAULT, api_ttypes.LineType.KNOWN_ERROR]:
-                filepath = self.extract_base_path_pattern.match(stack_line.filename).group(1)
+                filepath = self._get_basepath(stack_line.filename)
                 entry = api_ttypes.CodeIdentifier(filepath, stack_line.function_name, stack_line.text)
                 blamed_entry = entry
                 key = api_ttypes.ErrorKey(filepath, stack_line.line_number, stack_line.function_name, stack_line.text)
@@ -559,8 +566,8 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
                 params = copy.copy(err_key.__dict__)
                 if timestamp:
                     params["timestamp"] = timestamp
-                view_url = "http://%s/view_traceback?%s" % (config.hostname + ":" + str(config.port),
-                                                            urllib.urlencode(params))
+                view_url = "%s/view_traceback?%s" % (config.hostname + ":" + str(config.http_port),
+                                                     urllib.urlencode(params))
                 html_parts.append("<a href='%s'>view traceback</a>" % view_url)
                 html_parts.append("<br />")
             html_parts.append("<br />")
@@ -572,7 +579,7 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
     def view_traceback(self, filename="", function_name="", text="", line_number="", timestamp=None):
         errors_seen = self._get_errors_seen_for_ts(timestamp)
         err_key = api_ttypes.ErrorKey(filename=filename, function_name=function_name,
-                                      text=text, line_number=line_number)
+                                      text=text, line_number=int(line_number))
 
         err_info = errors_seen[err_key]
         if err_info:

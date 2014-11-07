@@ -44,7 +44,8 @@ OPTIONS = [
     FlawlessOption("config_dir_path", None, str, "Path to where flawless config files can be found"),
 
     # Control when errors get reported
-    FlawlessOption("report_runtime_package_directory_name", "site-packages", str,
+    FlawlessOption("report_runtime_package_directory_names", "site-packages",
+                   lambda s: [e.strip() for e in s.split(",") if e.strip()],
                    "The site-packages directory name"),
     FlawlessOption("report_only_after_minimum_date", "1970-1-1", str,
                    "Ignore errors occurring in old code that was last modified prior to this date"),
