@@ -104,10 +104,10 @@ def serve(conf_path, storage_cls=DiskStorage):
     if not os.path.exists(config.data_dir_path):
         os.makedirs(config.data_dir_path)
 
+    logging.basicConfig(level=getattr(logging, config.log_level), filename=config.log_file, stream=sys.stderr)
     child_pid = os.fork()
     if child_pid == 0:
         # Setup HTTP server
-        logging.basicConfig(level=getattr(logging, config.log_level), filename=config.log_file, stream=sys.stderr)
         handler = FlawlessWebServiceHandler(storage_cls=storage_cls)
         server = SimpleThreadedHTTPServer(('', config.http_port), SimpleRequestHTTPHandler)
         server.attach_service(handler)

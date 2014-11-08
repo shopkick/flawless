@@ -59,8 +59,8 @@ def code_identifier_equality(self, other):
         return False
 
     # Compress whitespace characters to make the comparissions more forgiving
-    self_fragment = None if not self.code_fragment else re.sub("\s+", " ", self.code_fragment)
-    other_fragment = None if not other.code_fragment else re.sub("\s+", " ", other.code_fragment)
+    self_fragment = None if not self.code_fragment else re.sub("\s+", " ", self.code_fragment.strip())
+    other_fragment = None if not other.code_fragment else re.sub("\s+", " ", other.code_fragment.strip())
     if (self_fragment and other_fragment and self_fragment not in other_fragment and
             other_fragment not in self_fragment):
         return False
@@ -320,7 +320,7 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
             )
 
         msg = email.MIMEText.MIMEText(body.encode("UTF-8"), "html", "UTF-8")
-        msg["From"] = "error_report@%s" % config.email_domain_name
+        msg["From"] = "flawless@%s" % config.email_domain_name
         msg["To"] = ", ".join(to_addresses)
         msg["Subject"] = subject
 
@@ -566,8 +566,7 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
                 params = copy.copy(err_key.__dict__)
                 if timestamp:
                     params["timestamp"] = timestamp
-                view_url = "%s/view_traceback?%s" % (config.hostname + ":" + str(config.http_port),
-                                                     urllib.urlencode(params))
+                view_url = "%s/view_traceback?%s" % (config.hostname, urllib.urlencode(params))
                 html_parts.append("<a href='%s'>view traceback</a>" % view_url)
                 html_parts.append("<br />")
             html_parts.append("<br />")
