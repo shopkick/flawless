@@ -189,7 +189,7 @@ class RecordErrorTestCase(BaseTestCase):
                           "-p", "/tmp/coreservices/service.py", "-L", "7,+1"],
                          self.popen_stub.last_args)
         self.assertEmailEquals(dict(to_addresses=["wishbone@shopkick.com"],
-                                    from_address="error_report@example.com",
+                                    from_address="flawless@example.com",
                                     subject="Error on localhost in coreservices/service.py",
                                     body="email text",
                                     smtp_server_host_port=None),
@@ -253,7 +253,7 @@ class RecordErrorTestCase(BaseTestCase):
         self.handler.record_error(req)
 
         self.assertEmailEquals(dict(to_addresses=["wishbone@shopkick.com"],
-                                    from_address="error_report@example.com",
+                                    from_address="flawless@example.com",
                                     cc_address=None,
                                     bcc_address=None,
                                     subject="Error on localhost in coreservices/service.py",
@@ -282,7 +282,7 @@ class RecordErrorTestCase(BaseTestCase):
         # The 2 red alert recipients plus the developer responsible
         self.assertEmailEquals(dict(to_addresses=["wilfred@shopkick.com", "wishbone@shopkick.com",
                                                   "snoopy@shopkick.com"],
-                                    from_address="error_report@example.com",
+                                    from_address="flawless@example.com",
                                     cc_address=None,
                                     bcc_address=None,
                                     subject="Error on localhost in coreservices/waterbowl/rewards/water.py",
@@ -305,7 +305,7 @@ class RecordErrorTestCase(BaseTestCase):
 
         self.handler.record_error(req)
         self.assertEmailEquals(dict(to_addresses=["wilfred@shopkick.com", "wishbone@shopkick.com", "lassie@shopkick.com"],
-                                    from_address="error_report@example.com",
+                                    from_address="flawless@example.com",
                                     cc_address=None,
                                     bcc_address=None,
                                     subject="Error on localhost in tools/furminator.py",
@@ -337,7 +337,7 @@ class RecordErrorTestCase(BaseTestCase):
         self.assertEmailEquals(dict(to_addresses=["snoopy@shopkick.com",
                                                   "wilfred@shopkick.com",
                                                   "wishbone@shopkick.com"],
-                                    from_address="error_report@example.com",
+                                    from_address="flawless@example.com",
                                     cc_address=None,
                                     bcc_address=None,
                                     subject="Error on localhost in coreservices/waterbowl/rewards/water.py",
@@ -365,7 +365,7 @@ class RecordErrorTestCase(BaseTestCase):
         self.handler.record_error(req)
 
         self.assertEmailEquals(dict(to_addresses=["wishbone@shopkick.com"],
-                                    from_address="error_report@example.com",
+                                    from_address="flawless@example.com",
                                     cc_address=None,
                                     bcc_address=None,
                                     subject="Error on localhost in lib/no/such/path/for/testing.py",
