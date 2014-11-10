@@ -32,6 +32,8 @@ import traceback
 import urllib
 import urlparse
 
+from thrift.Thrift import TType
+
 import flawless.lib.config
 from flawless.lib.data_structures import prefix_tree
 from flawless.lib.storage import DiskStorage
@@ -382,7 +384,7 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
         return (key, blamed_entry, email_recipients, False)
 
     def _record_error(self, request):
-        log.info("Recieved error from %s for %s" % (request.hostname, request.exception_message))
+        log.debug("Recieved error from %s for %s" % (request.hostname, request.exception_message))
 
         # Figure out which line in the stack trace is to blame for the error
         key, blamed_entry, email_recipients, was_whitelisted = self._blame_line(request.traceback)
@@ -485,7 +487,7 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
             email_body.append(
                 "<br /><br /><a href='http://%s/add_known_error?%s'>Add to whitelist</a>" %
                 (
-                    config.hostname + ":" + str(config.port),
+                    config.hostname,
                     urllib.urlencode(
                         dict(filename=key.filename, function_name=key.function_name, code_fragment=key.text)
                     )
@@ -535,9 +537,28 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
         config_storage.close()
 
     def _construct_instance(self, params, cls):
+        THRIFT_SPEC_NAME_FIELD = 2
+        THRIFT_SPEC_TYPE_FIELD = 1
         init_args = inspect.getargspec(cls.__init__).args
         whitelist_attrs = [s for s in init_args if s != 'self']
-        new_entry = cls(**dict((k, params.get(k)) for k in whitelist_attrs))
+        args = dict((k, params.get(k)) for k in whitelist_attrs)
+        arg_type_map = dict()
+
+        # Build map of fields to type based on the thrift spec
+        for spec in cls.thrift_spec:
+            if not spec or len(spec) < 3:
+                continue
+            if spec[THRIFT_SPEC_TYPE_FIELD] == TType.BOOL:
+                arg_type_map[spec[THRIFT_SPEC_NAME_FIELD]] = bool
+            elif spec[THRIFT_SPEC_TYPE_FIELD] == TType.I64 or spec[THRIFT_SPEC_TYPE_FIELD] == TType.I32:
+                arg_type_map[spec[THRIFT_SPEC_NAME_FIELD]] = int
+
+        # Cast args to the appropriate type
+        for field, value in args.items():
+            if value and field in arg_type_map:
+                args[field] = arg_type_map[field](value)
+
+        new_entry = cls(**args)
         return new_entry
 
     def get_weekly_error_report(self, timestamp=None, include_known_errors=False,
