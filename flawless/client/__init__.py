@@ -14,6 +14,7 @@ import functools
 import traceback
 import linecache
 import os.path
+import random
 import socket
 import sys
 import warnings
@@ -36,7 +37,8 @@ NUM_FRAMES_TO_SAVE = 20
 
 
 def _get_backend_host():
-    return config.flawless_hostport or flawless.client.default.hostport
+    hostports = config.flawless_hostports or flawless.client.default.hostports
+    return random.choice(hostports) if hostports else None
 
 
 def _get_service():
@@ -63,8 +65,10 @@ def _myrepr(s):
         return "Could not except repr for this field"
 
 
-def set_hostport(hostport):
-    flawless.client.default.hostport = hostport
+def set_hostports(hostports):
+    if type(hostports) not in [tuple, list]:
+        raise ValueError("hostports must be a list or tuple")
+    flawless.client.default.hostports = hostports
 
 
 def record_error(hostname, sys_traceback, exception_message, preceding_stack=None,

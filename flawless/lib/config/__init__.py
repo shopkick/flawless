@@ -67,7 +67,9 @@ OPTIONS = [
     FlawlessOption("repo_branch_pattern", None, str, "Regular expressions to identify release branches"),
 
     # Client settings
-    FlawlessOption("flawless_hostport", None, str, "Host:port of the flawless backend"),
+    FlawlessOption("flawless_hostports", None,
+                   lambda s: [e.strip() for e in s.split(",") if e.strip()],
+                   "Host:port of the flawless backend"),
     FlawlessOption("client_timeout", 10, int, "The number of seconds before requests should timeout"),
 
     # Logging
