@@ -126,7 +126,7 @@ class BaseTestCase(unittest.TestCase):
 
         self.handler = FlawlessThriftServiceHandler(
             open_process_func=self.popen_stub,
-            storage_cls=lambda partition: self.errors_storage_stub if partition else self.config_storage_stub,
+            storage_factory=lambda partition: self.errors_storage_stub if partition else self.config_storage_stub,
             smtp_client_cls=self.smtp_stub,
             time_func=lambda: self.stub_time,
             thread_cls=ThreadStub,

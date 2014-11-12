@@ -80,7 +80,7 @@ class FlawlessServiceBaseClass(object):
     """Contains numerous shared helper functions for the ThriftService & WebService classes"""
 
     def __init__(self,
-                 storage_cls=DiskStorage,
+                 storage_factory=DiskStorage,
                  thread_cls=threading.Thread,
                  open_process_func=subprocess.Popen,
                  smtp_client_cls=smtplib.SMTP,
@@ -95,7 +95,7 @@ class FlawlessServiceBaseClass(object):
     ############################## Parse Config Files ##############################
 
     def _read_whitelist_configs(self):
-        config_storage = self.storage_cls(partition=None)
+        config_storage = self.storage_factory(partition=None)
         config_storage.open()
 
         # Whitelists
@@ -276,12 +276,12 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
         prefix = self._partition_for_ms(epoch_ms)
         with self.lock:
             if self.errors_seen is None:
-                self.errors_seen = self.storage_cls(prefix)
+                self.errors_seen = self.storage_factory(prefix)
                 self.errors_seen.open()
             elif prefix != self.errors_seen.partition:
                 # Order matters here since there can be a race condition if not done correctly
                 old_errors_seen = self.errors_seen
-                new_errors_seen = self.storage_cls(prefix)
+                new_errors_seen = self.storage_factory(prefix)
                 new_errors_seen.open()
                 self.errors_seen = new_errors_seen
                 old_errors_seen.sync()
@@ -518,7 +518,7 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
 
     def _get_errors_seen_for_ts(self, timestamp):
         prefix = self._partition_for_ms(int(timestamp) * 1000 if timestamp else None)
-        errors_seen = self.storage_cls(prefix)
+        errors_seen = self.storage_factory(prefix)
         errors_seen.open()
         return errors_seen
 
@@ -527,7 +527,7 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
                          building_blocks=api_ttypes.CodeIdentifierList,
                          third_party_whitelist=api_ttypes.CodeIdentifierList,
                          watch_list=api_ttypes.WatchList)
-        config_storage = self.storage_cls(partition=None)
+        config_storage = self.storage_factory(partition=None)
         config_storage.open()
         current_value = config_storage[key] or class_map[key]()
         getattr(current_value, attr).append(entry)
@@ -773,7 +773,7 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
 
     def save_remap_email(self, request):
         params = dict(urlparse.parse_qsl(request))
-        config_storage = self.storage_cls(partition=None)
+        config_storage = self.storage_factory(partition=None)
         config_storage.open()
         current_value = config_storage["email_remapping"] or api_ttypes.EmailRemapping()
         current_value.remap[params["old_email"]] = params["new_email"]
@@ -784,7 +784,7 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
         return "<html><body>SUCCESS</body></html>"
 
     def view_config(self, key):
-        config_storage = self.storage_cls(partition=None)
+        config_storage = self.storage_factory(partition=None)
         config_storage.open()
         current_value = config_storage[key]
         config_storage.close()
