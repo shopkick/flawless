@@ -15,7 +15,6 @@ import copy
 import os.path
 
 import flawless.lib.config
-from flawless.lib.data_structures import ProxyContainerMethodsMetaClass
 from flawless.lib.data_structures.persistent_dictionary import PersistentDictionary
 
 
@@ -80,12 +79,10 @@ class StorageInterface(object):
         pass
 
 
-class DiskStorage(object):
-
-    __metaclass__ = ProxyContainerMethodsMetaClass
+class DiskStorage(StorageInterface):
 
     def __init__(self, partition):
-        self.partition = partition
+        super(DiskStorage, self).__init__(partition)
         config = flawless.lib.config.get()
         if self.partition:
             filepath = os.path.join(config.data_dir_path, "flawless-errors-", partition)
@@ -101,9 +98,15 @@ class DiskStorage(object):
 
     def open(self):
         self.disk_dict.open()
+
+        # Build new copy of dict since migrate_thrift_obj may change the hash code of the keys of the dict
+        migrated_dict = dict()
         for key, value in self.disk_dict.dict.items():
             self.migrate_thrift_obj(key)
             self.migrate_thrift_obj(value)
+            migrated_dict[key] = value
+
+        self.disk_dict.dict = migrated_dict
 
     def sync(self):
         self.disk_dict.sync()
@@ -114,4 +117,14 @@ class DiskStorage(object):
     def iteritems(self):
         return self.disk_dict.dict.iteritems()
 
-StorageInterface.register(DiskStorage)
+    def __setitem__(self, key, item):
+        self.disk_dict[key] = item
+
+    def __getitem__(self, key):
+        try:
+            return self.disk_dict[key]
+        except KeyError:
+            return None
+
+    def __contains__(self, key):
+        return key in self.disk_dict

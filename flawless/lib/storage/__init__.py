@@ -10,4 +10,5 @@
 # ---
 # Author: John Egan <john@shopkick.com>
 
-from flawless.lib.data_structures.proxy_container import ProxyContainerMethodsMetaClass
+from flawless.lib.storage.base import StorageInterface
+from flawless.lib.storage.base import DiskStorage

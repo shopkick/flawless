@@ -13,7 +13,7 @@
 import functools
 import inspect
 
-import flawless.client
+import flawless.client.client
 
 
 def wrap_function(func=None, error_threshold=None, reraise_exception=True):
@@ -28,10 +28,10 @@ def wrap_function(func=None, error_threshold=None, reraise_exception=True):
     #         @wrap_function(error_threshold=3, reraise_exception=False)
     #         def some_func():
     if func:
-        return flawless.client._wrap_function_with_error_decorator(
+        return flawless.client.client._wrap_function_with_error_decorator(
             func=func, error_threshold=error_threshold, reraise_exception=reraise_exception)
     else:
-        return functools.partial(flawless.client._wrap_function_with_error_decorator,
+        return functools.partial(flawless.client.client._wrap_function_with_error_decorator,
                                  error_threshold=error_threshold,
                                  reraise_exception=reraise_exception)
 
@@ -41,7 +41,7 @@ def wrap_class(cls, error_threshold=None):
             Decorators are injected under the classmethod decorator if they exist.
     '''
     for method_name, method in inspect.getmembers(cls, inspect.ismethod):
-        wrapped_method = flawless.client._wrap_function_with_error_decorator(
+        wrapped_method = flawless.client.client._wrap_function_with_error_decorator(
             method if not method.im_self else method.im_func,
             save_current_stack_trace=False,
             error_threshold=error_threshold,

@@ -15,6 +15,7 @@ import unittest
 
 
 import flawless.client
+import flawless.client.client
 import flawless.client.decorators
 from flawless.server.stub import FlawlessServiceStub
 
@@ -47,15 +48,15 @@ class BaseErrorsTestCase(unittest.TestCase):
 
     def setUp(self):
         self.client_stub = FlawlessServiceStub()
-        self.saved_get_get_service = flawless.client._get_service
-        setattr(flawless.client, "_get_service", lambda: (self.client_stub, TransportStub()))
+        self.saved_get_get_service = flawless.client.client._get_service
+        setattr(flawless.client.client, "_get_service", lambda: (self.client_stub, TransportStub()))
         self.saved_config = copy.deepcopy(flawless.lib.config.get().__dict__)
         self.test_config = flawless.lib.config.get()
         self.test_config.__dict__ = dict((o.name, o.default) for o in flawless.lib.config.OPTIONS)
         flawless.client.set_hostports(["localhost:9028"])
 
     def tearDown(self):
-        setattr(flawless.client, "_get_service", self.saved_get_get_service)
+        setattr(flawless.client.client, "_get_service", self.saved_get_get_service)
         flawless.lib.config.get().__dict__ = self.saved_config
 
 
