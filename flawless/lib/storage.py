@@ -11,6 +11,7 @@
 # Author: John Egan <john@shopkick.com>
 
 import abc
+import copy
 import os.path
 
 import flawless.lib.config
@@ -47,6 +48,18 @@ class StorageInterface(object):
     def close(self):
         """Called to close connection to storage"""
         pass
+
+    def migrate_thrift_obj(self, obj):
+        """Helper function that can be called when serializing/deserializing thrift objects whose definitions
+        have changed, we need to make sure we initialize the new attributes to their default value"""
+        if not hasattr(obj, "thrift_spec"):
+            return
+
+        obj_key_set = set(obj.__dict__.keys())
+        thrift_field_map = {t[2]: t[4] for t in obj.thrift_spec if t}
+        obj.__dict__.update({f: copy.copy(thrift_field_map[f]) for f in set(thrift_field_map.keys()) - obj_key_set})
+        for value in obj.__dict__.itervalues():
+            self.migrate_thrift_obj(value)
 
     @abc.abstractmethod
     def iteritems(self):
@@ -88,6 +101,9 @@ class DiskStorage(object):
 
     def open(self):
         self.disk_dict.open()
+        for key, value in self.disk_dict.dict.items():
+            self.migrate_thrift_obj(key)
+            self.migrate_thrift_obj(value)
 
     def sync(self):
         self.disk_dict.sync()
