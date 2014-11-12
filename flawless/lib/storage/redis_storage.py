@@ -20,7 +20,7 @@ class RedisStorage(StorageInterface):
 
     def __init__(self, host, port, partition, socket_timeout=2):
         super(RedisStorage, self).__init__(partition=partition)
-        self.redis_partition_name = self.patition if self.partition else "config"
+        self.redis_partition_name = self.partition if self.partition else "config"
         self.client = redis.Redis(host=host, port=port, socket_timeout=socket_timeout)
 
     def _serialize(self, value):
@@ -33,8 +33,17 @@ class RedisStorage(StorageInterface):
         self.migrate_thrift_obj(obj)
         return obj
 
+    def _hscan_iter(self, name):
+        cursor = '0'
+        while True:
+            cursor, data = self.client.execute_command('HSCAN', name, cursor)
+            for index in xrange(0, len(data), 2):
+                yield (data[index], data[index + 1])
+            if cursor == '0':
+                break
+
     def iteritems(self):
-        for key, value in self.client.hscan_iter(self.redis_partition_name):
+        for key, value in self._hscan_iter(self.redis_partition_name):
             key = self._deserialize(key)
             value = self._deserialize(value)
             yield (key, value)
