@@ -8,7 +8,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 # ---
-# Author: John Egan <john@shopkick.com>
+# Author: John Egan <jwegan@gmail.com>
 
 from flawless.client.client import set_hostports
 from flawless.client.client import record_error

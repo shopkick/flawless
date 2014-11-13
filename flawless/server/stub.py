@@ -8,7 +8,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 # ---
-# Author: John Egan <john@shopkick.com>
+# Author: John Egan <jwegan@gmail.com>
 
 from flawless.server.api import Flawless
 

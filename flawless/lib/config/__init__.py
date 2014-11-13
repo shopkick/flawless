@@ -8,7 +8,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 # ---
-# Author: John Egan <john@shopkick.com>
+# Author: John Egan <jwegan@gmail.com>
 
 from flawless.lib.config.config import get
 from flawless.lib.config.config import init_config

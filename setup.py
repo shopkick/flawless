@@ -8,7 +8,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 #
 # ---
-# Author: John Egan <john@shopkick.com>
+# Author: John Egan <jwegan@gmail.com>
 
 import os
 import os.path
@@ -40,7 +40,7 @@ setup(
   long_description=markdown_to_reST(open("README.md").read()),
   license='MPL 2.0',
   author='John Egan',
-  author_email='john@shopkick.com',
+  author_email='jwegan@gmail.com',
   url='http://github.com/shopkick/flawless',
   zip_safe=False,
   packages=find_packages(exclude=['ez_setup', 'examples', 'packages', 'tests*']),
