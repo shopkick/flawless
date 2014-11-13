@@ -34,6 +34,11 @@ class RedisStorage(StorageInterface):
         return obj
 
     def _hscan_iter(self, name):
+        if hasattr(self.client, "hscan_iter"):
+            for key, value in self.client.hscan_iter(name):
+                yield (key, value)
+            return
+
         cursor = '0'
         while True:
             cursor, data = self.client.execute_command('HSCAN', name, cursor)
