@@ -10,19 +10,10 @@
 # ---
 # Author: John Egan <john@shopkick.com>
 
-from flawless.lib.data_structures import ProxyContainerMethodsMetaClass
 from flawless.lib.storage import StorageInterface
 
 
-class StorageStub(object):
-
-    __metaclass__ = ProxyContainerMethodsMetaClass
-
-    def _proxyfunc_(attr, self, *args, **kwargs):
-        try:
-            return getattr(self.dict, attr)(*args, **kwargs)
-        except KeyError:
-            return None
+class StubStorage(StorageInterface):
 
     def __init__(self, partition):
         self.partition = partition
@@ -31,13 +22,11 @@ class StorageStub(object):
     def iteritems(self):
         return self.dict.iteritems()
 
-    def open(self):
-        pass
+    def __setitem__(self, key, item):
+        self.dict[key] = item
 
-    def sync(self):
-        pass
+    def __getitem__(self, key):
+        return self.dict.get(key)
 
-    def close(self):
-        pass
-
-StorageInterface.register(StorageStub)
+    def __contains__(self, key):
+        return key in self.dict

@@ -11,4 +11,9 @@
 # Author: John Egan <john@shopkick.com>
 
 from flawless.lib.storage.base import StorageInterface
-from flawless.lib.storage.base import DiskStorage
+from flawless.lib.storage.disk import DiskStorage
+
+try:
+    from flawless.lib.storage.redis import RedisStorage
+except:
+    pass

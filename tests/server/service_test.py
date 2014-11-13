@@ -17,10 +17,10 @@ import time
 import unittest
 import StringIO
 
-from flawless.lib.data_structures.stubs import StorageStub
+from flawless.lib.storage.stub import StubStorage
 import flawless.lib.config
 import flawless.server.api.ttypes as api_ttypes
-from flawless.server.service import *
+from flawless.server.service import FlawlessThriftServiceHandler
 import flawless.server.server
 
 
@@ -103,12 +103,12 @@ class BaseTestCase(unittest.TestCase):
                                       'raise errors.BadRequestError("Missing param %s" % name)'),
         ])
 
-        self.config_storage_stub = StorageStub(partition=None)
+        self.config_storage_stub = StubStorage(partition=None)
         self.config_storage_stub["watch_list"] = self.watchers
         self.config_storage_stub["third_party_whitelist"] = self.third_party_whitelist
         self.config_storage_stub["known_errors"] = self.known_errors
         self.config_storage_stub["building_blocks"] = self.building_blocks
-        self.errors_storage_stub = StorageStub(partition=None)
+        self.errors_storage_stub = StubStorage(partition=None)
 
         self.saved_config = copy.deepcopy(flawless.lib.config.get().__dict__)
         self.test_config = flawless.lib.config.get()
