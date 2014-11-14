@@ -12,7 +12,7 @@
 
 import os
 import os.path
-import pickle
+import cPickle as pickle
 import shutil
 import threading
 

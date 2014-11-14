@@ -10,7 +10,7 @@
 # ---
 # Author: John Egan <jwegan@gmail.com>
 
-import pickle
+import cPickle as pickle
 
 from flawless.lib.storage import StorageInterface
 import redis  # Recommend redis==2.4.10
