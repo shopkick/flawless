@@ -50,3 +50,12 @@ def wrap_class(cls, error_threshold=None):
             wrapped_method = classmethod(wrapped_method)
         setattr(cls, method_name, wrapped_method)
     return cls
+
+
+class WrapClassMetaclass(type):
+    '''Specify FlawlessMetaClass as the metaclass for your class if you want Flawless to wrap a base class
+    that other classes inherit from. Only methods defined in the base class that uses this metaclass will be wrapped.
+    (i.e. new methods defined only in the subclass will not be wrapped)'''
+    def __init__(cls, name, bases, dct):
+        cls = wrap_class(cls)
+        return super(WrapClassMetaclass, cls).__init__(name, bases, dct)
