@@ -28,10 +28,11 @@ flawless/lib/data_structures/__init__.py
 flawless/lib/data_structures/persistent_dictionary.py
 flawless/lib/data_structures/prefix_tree.py
 flawless/lib/data_structures/proxy_container.py
-flawless/lib/data_structures/stubs.py
 flawless/lib/storage/__init__.py
 flawless/lib/storage/base.py
-flawless/lib/storage/redis_storage.py
+flawless/lib/storage/disk.py
+flawless/lib/storage/redis.py
+flawless/lib/storage/stub.py
 flawless/lib/version_control/__init__.py
 flawless/lib/version_control/repo.py
 flawless/server/__init__.py

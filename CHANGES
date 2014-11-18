@@ -1,3 +1,4 @@
+v0.2.5 2014-11-17 -- cPickle, WrapClassMetaclass, fix redis storage
 v0.2.4 2014-11-12 -- Code cleanup, add ability to specify multiple hosts, redis storage
 v0.2.1 2014-11-07 -- Add logging, fix unit tests, convert thrift to new-style py objs
 v0.2.0 2014-11-06 -- Complete migrating whitelist/watch configs to allow storage in a DB
