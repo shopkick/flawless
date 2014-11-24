@@ -17,8 +17,10 @@ import os.path
 import random
 import socket
 import sys
+import time
 import warnings
 
+from thrift.Thrift import TException
 from thrift.transport import TTransport
 from thrift.transport import TSocket
 from thrift.protocol import TBinaryProtocol
@@ -34,6 +36,13 @@ config = flawless.lib.config.get()
 MAX_VARIABLE_REPR = 250
 MAX_LOCALS = 100
 NUM_FRAMES_TO_SAVE = 20
+
+BACKOFF_MS = 0
+CONSECUTIVE_CONNECTION_ERRORS = 0
+
+
+def _get_epoch_ms():
+    return int(time.time() * 1000)
 
 
 def _get_backend_host():
@@ -53,7 +62,6 @@ def _get_service():
     transport = TTransport.TFramedTransport(tsocket)
     protocol = TBinaryProtocol.TBinaryProtocol(transport)
     client = Flawless.Client(protocol)
-    transport.open()
     return client, transport
 
 
@@ -74,55 +82,66 @@ def set_hostports(hostports):
 def record_error(hostname, sys_traceback, exception_message, preceding_stack=None,
                  error_threshold=None, additional_info=None):
     ''' Helper function to record errors to the flawless backend '''
-    try:
-        stack = []
-        while sys_traceback is not None:
-            stack.append(sys_traceback)
-            sys_traceback = sys_traceback.tb_next
+    stack = []
+    while sys_traceback is not None:
+        stack.append(sys_traceback)
+        sys_traceback = sys_traceback.tb_next
 
-        stack_lines = []
-        for row in preceding_stack or []:
-            stack_lines.append(
-                api_ttypes.StackLine(filename=os.path.abspath(row[0]), line_number=row[1],
-                                     function_name=row[2], text=row[3])
-            )
-
-        for index, tb in enumerate(stack):
-            filename = tb.tb_frame.f_code.co_filename
-            func_name = tb.tb_frame.f_code.co_name
-            lineno = tb.tb_lineno
-            line = linecache.getline(filename, lineno, tb.tb_frame.f_globals)
-            frame_locals = None
-            if index >= (len(stack) - NUM_FRAMES_TO_SAVE):
-                # Include some limits on max string length & number of variables to keep things from getting
-                # out of hand
-                frame_locals = dict((k, _myrepr(v)) for k, v in
-                                    tb.tb_frame.f_locals.items()[:MAX_LOCALS] if k != "self")
-                if "self" in tb.tb_frame.f_locals and hasattr(tb.tb_frame.f_locals["self"], "__dict__"):
-                    frame_locals.update(dict(("self." + k, _myrepr(v)) for k, v in
-                                             tb.tb_frame.f_locals["self"].__dict__.items()[:MAX_LOCALS]
-                                             if k != "self"))
-
-            # TODO (john): May need to prepend site-packages to filename to get correct path
-            stack_lines.append(
-                api_ttypes.StackLine(filename=os.path.abspath(filename), line_number=lineno,
-                                     function_name=func_name, text=line, frame_locals=frame_locals)
-            )
-
-        req = api_ttypes.RecordErrorRequest(
-            traceback=stack_lines,
-            exception_message=exception_message,
-            hostname=hostname,
-            error_threshold=error_threshold,
-            additional_info=additional_info,
+    stack_lines = []
+    for row in preceding_stack or []:
+        stack_lines.append(
+            api_ttypes.StackLine(filename=os.path.abspath(row[0]), line_number=row[1],
+                                 function_name=row[2], text=row[3])
         )
 
-        client, transport = _get_service()
-        if client and transport:
+    for index, tb in enumerate(stack):
+        filename = tb.tb_frame.f_code.co_filename
+        func_name = tb.tb_frame.f_code.co_name
+        lineno = tb.tb_lineno
+        line = linecache.getline(filename, lineno, tb.tb_frame.f_globals)
+        frame_locals = None
+        if index >= (len(stack) - NUM_FRAMES_TO_SAVE):
+            # Include some limits on max string length & number of variables to keep things from getting
+            # out of hand
+            frame_locals = dict((k, _myrepr(v)) for k, v in
+                                tb.tb_frame.f_locals.items()[:MAX_LOCALS] if k != "self")
+            if "self" in tb.tb_frame.f_locals and hasattr(tb.tb_frame.f_locals["self"], "__dict__"):
+                frame_locals.update(dict(("self." + k, _myrepr(v)) for k, v in
+                                         tb.tb_frame.f_locals["self"].__dict__.items()[:MAX_LOCALS]
+                                         if k != "self"))
+
+        # TODO (john): May need to prepend site-packages to filename to get correct path
+        stack_lines.append(
+            api_ttypes.StackLine(filename=os.path.abspath(filename), line_number=lineno,
+                                 function_name=func_name, text=line, frame_locals=frame_locals)
+        )
+
+    req = api_ttypes.RecordErrorRequest(
+        traceback=stack_lines,
+        exception_message=exception_message,
+        hostname=hostname,
+        error_threshold=error_threshold,
+        additional_info=additional_info,
+    )
+
+    global BACKOFF_MS
+    global CONSECUTIVE_CONNECTION_ERRORS
+    client, transport = _get_service()
+    try:
+        if client and transport and _get_epoch_ms() >= BACKOFF_MS:
+            transport.open()
             client.record_error(req)
-            transport.close()
-    except:
+            BACKOFF_MS = 0
+            CONSECUTIVE_CONNECTION_ERRORS = 0
+
+    except TException:
+        CONSECUTIVE_CONNECTION_ERRORS += 1
+        backoff = random.choice([1000, 2000, 3000]) * max(100, CONSECUTIVE_CONNECTION_ERRORS)
+        BACKOFF_MS = _get_epoch_ms() + backoff
         raise
+    finally:
+        if transport and transport.isOpen():
+            transport.close()
 
 
 def _safe_wrap(func):

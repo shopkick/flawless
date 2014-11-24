@@ -157,8 +157,14 @@ class FuncThreadStub(object):
 
 
 class TransportStub(object):
+    def open(self):
+        pass
+
     def close(self):
         pass
+
+    def isOpen(self):
+        return True
 
 
 if __name__ == '__main__':
