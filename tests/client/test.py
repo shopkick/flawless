@@ -11,6 +11,7 @@
 # Author: John Egan <jwegan@gmail.com>
 
 import copy
+import time
 import unittest
 
 
@@ -125,6 +126,12 @@ class FunctionDecoratorTestCase(BaseErrorsTestCase):
                 errorFound = True
         self.assertTrue(errorFound)
         self.assertEqual(None, req_obj.error_threshold)
+
+    def test_does_not_call_flawless_if_backoff(self):
+        flawless.client.client.BACKOFF_MS = int(time.time() * 1000) + 1000
+        self.assertRaises(Exception, self.example_func, fail=True)
+        self.assertEqual(None, self.client_stub.record_error.last_args)
+        flawless.client.client.BACKOFF_MS = 0
 
     def test_decorator_with_kwargs(self):
         self.second_example_func(fail=True)
