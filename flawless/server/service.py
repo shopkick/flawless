@@ -158,6 +158,25 @@ class FlawlessServiceBaseClass(object):
 
     ############################## Traceback/Line Type Helpers ##############################
 
+    def _blame_line(self, traceback):
+        '''Figures out which line in traceback is to blame for the error.
+        Returns a 3-tuple of (ErrorKey, StackTraceEntry, [email recipients])'''
+        key = None
+        blamed_entry = None
+        email_recipients = []
+        for stack_line in traceback:
+            line_type = self._get_line_type(stack_line)
+            if line_type == api_ttypes.LineType.THIRDPARTY_WHITELIST:
+                return None, None, None, True
+            elif line_type in [api_ttypes.LineType.DEFAULT, api_ttypes.LineType.KNOWN_ERROR]:
+                filepath = self._get_basepath(stack_line.filename)
+                entry = api_ttypes.CodeIdentifier(filepath, stack_line.function_name, stack_line.text)
+                blamed_entry = entry
+                key = api_ttypes.ErrorKey(filepath, stack_line.line_number, stack_line.function_name, stack_line.text)
+                if filepath in self.watch_all_errors:
+                    email_recipients.extend(self.watch_all_errors[filepath])
+        return (key, blamed_entry, email_recipients, False)
+
     def _get_line_type(self, line):
         filepath = self._get_basepath(line.filename)
         if not filepath:
@@ -364,25 +383,6 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
         t = self.thread_cls(target=self._record_error, args=[request])
         t.start()
 
-    def _blame_line(self, traceback):
-        '''Figures out which line in traceback is to blame for the error.
-        Returns a 3-tuple of (ErrorKey, StackTraceEntry, [email recipients])'''
-        key = None
-        blamed_entry = None
-        email_recipients = []
-        for stack_line in traceback:
-            line_type = self._get_line_type(stack_line)
-            if line_type == api_ttypes.LineType.THIRDPARTY_WHITELIST:
-                return None, None, None, True
-            elif line_type in [api_ttypes.LineType.DEFAULT, api_ttypes.LineType.KNOWN_ERROR]:
-                filepath = self._get_basepath(stack_line.filename)
-                entry = api_ttypes.CodeIdentifier(filepath, stack_line.function_name, stack_line.text)
-                blamed_entry = entry
-                key = api_ttypes.ErrorKey(filepath, stack_line.line_number, stack_line.function_name, stack_line.text)
-                if filepath in self.watch_all_errors:
-                    email_recipients.extend(self.watch_all_errors[filepath])
-        return (key, blamed_entry, email_recipients, False)
-
     def _record_error(self, request):
         log.debug("Recieved error from %s for %s" % (request.hostname, request.exception_message))
 
@@ -429,8 +429,9 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
             log.info("Error %s caused by %s on %s" % (str(key), dev_email, mod_time))
 
             if not dev_email:
-                self._handle_flawless_issue("Unable to do blame for %s. You may want to consider setting "
-                                            "only_blame_filepaths_matching in your flawless.cfg " % str(key))
+                self._handle_flawless_issue("Unable to do blame for %s from %s. You may want to consider setting "
+                                            "only_blame_filepaths_matching in your flawless.cfg " %
+                                            (str(key), request.hostname))
                 err_info.email_sent = True
                 return
         # If we've already seen this error then update the error count
@@ -471,38 +472,41 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
 
         # Send email if applicable
         if send_email:
-            email_body = []
-            dev_email = self._get_email(err_info.developer_email)
-            if dev_email:
-                email_recipients.append(dev_email)
+            self._send_error_email(request, key, err_info, blamed_entry, known_entry, email_recipients)
 
-            # Add additional recipients that have registered for this error
-            if blamed_entry.filename in self.watch_only_if_blamed:
-                email_recipients.extend(self.watch_only_if_blamed[blamed_entry.filename])
-            if known_entry:
-                email_recipients.extend(known_entry.email_recipients or [])
-                email_body.append(known_entry.email_header or "")
+    def _send_error_email(self, request, err_key, err_info, blamed_entry, known_entry, email_recipients):
+        email_body = []
+        dev_email = self._get_email(err_info.developer_email)
+        if dev_email:
+            email_recipients.append(dev_email)
 
-            email_body.append(self._format_traceback(request))
-            email_body.append(
-                "<br /><br /><a href='http://%s/add_known_error?%s'>Add to whitelist</a>" %
-                (
-                    config.hostname,
-                    urllib.urlencode(
-                        dict(filename=key.filename, function_name=key.function_name, code_fragment=key.text)
-                    )
+        # Add additional recipients that have registered for this error
+        if blamed_entry.filename in self.watch_only_if_blamed:
+            email_recipients.extend(self.watch_only_if_blamed[blamed_entry.filename])
+        if known_entry:
+            email_recipients.extend(known_entry.email_recipients or [])
+            email_body.append(known_entry.email_header or "")
+
+        email_body.append(self._format_traceback(request))
+        email_body.append(
+            "<br /><br /><a href='http://%s/add_known_error?%s'>Add to whitelist</a>" %
+            (
+                config.hostname,
+                urllib.urlencode(
+                    dict(filename=err_key.filename, function_name=err_key.function_name, code_fragment=err_key.text)
                 )
             )
+        )
 
-            # Send the email
-            log.info("Sending email for %s to %s" % (str(key), ", ".join(email_recipients)))
-            self._sendmail(
-                to_addresses=email_recipients,
-                subject="Error on %s in %s" % (request.hostname, key.filename),
-                body="<br />".join([s for s in email_body if s]),
-            )
-            err_info.email_sent = True
-            self.errors_seen[key] = err_info
+        # Send the email
+        log.info("Sending email for %s to %s" % (str(err_key), ", ".join(email_recipients)))
+        self._sendmail(
+            to_addresses=email_recipients,
+            subject="Error on %s in %s" % (request.hostname, err_key.filename),
+            body="<br />".join([s for s in email_body if s]),
+        )
+        err_info.email_sent = True
+        self.errors_seen[err_key] = err_info
 
 
 ############################## WEB SERVICE ##############################
