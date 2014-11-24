@@ -132,8 +132,9 @@ def record_error(hostname, sys_traceback, exception_message, preceding_stack=Non
             transport.open()
             client.record_error(req)
             CONSECUTIVE_CONNECTION_ERRORS = int(CONSECUTIVE_CONNECTION_ERRORS / 2)
-            backoff = 1000 * random.randint(1, 2 ** CONSECUTIVE_CONNECTION_ERRORS)
-            BACKOFF_MS = _get_epoch_ms() + backoff
+            if CONSECUTIVE_CONNECTION_ERRORS > 0:
+                backoff = 1000 * random.randint(1, 2 ** CONSECUTIVE_CONNECTION_ERRORS)
+                BACKOFF_MS = _get_epoch_ms() + backoff
 
     except TException:
         CONSECUTIVE_CONNECTION_ERRORS = max(12, CONSECUTIVE_CONNECTION_ERRORS + 1)
