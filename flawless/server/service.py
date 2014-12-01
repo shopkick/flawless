@@ -489,7 +489,7 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
 
         email_body.append(self._format_traceback(request))
         email_body.append(
-            "<br /><br /><a href='http://%s/add_known_error?%s'>Add to whitelist</a>" %
+            "<br /><br /><a href='%s/add_known_error?%s'>Add to whitelist</a>" %
             (
                 config.hostname,
                 urllib.urlencode(

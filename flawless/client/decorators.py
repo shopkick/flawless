@@ -16,7 +16,7 @@ import inspect
 import flawless.client.client
 
 
-def wrap_function(func=None, error_threshold=None, reraise_exception=True):
+def wrap_function(func=None, error_threshold=None, reraise_exception=True, save_current_stack_trace=True):
     ''' Wraps a function with reporting to errors backend '''
     # This if/else allows wrap_function to behave like a normal decorator when
     # used like:
@@ -29,11 +29,15 @@ def wrap_function(func=None, error_threshold=None, reraise_exception=True):
     #         def some_func():
     if func:
         return flawless.client.client._wrap_function_with_error_decorator(
-            func=func, error_threshold=error_threshold, reraise_exception=reraise_exception)
+            func=func,
+            error_threshold=error_threshold,
+            reraise_exception=reraise_exception,
+            save_current_stack_trace=save_current_stack_trace)
     else:
         return functools.partial(flawless.client.client._wrap_function_with_error_decorator,
                                  error_threshold=error_threshold,
-                                 reraise_exception=reraise_exception)
+                                 reraise_exception=reraise_exception,
+                                 save_current_stack_trace=save_current_stack_trace)
 
 
 def wrap_class(cls, error_threshold=None):
