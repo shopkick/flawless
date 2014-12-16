@@ -44,7 +44,7 @@ class RedisStorage(StorageInterface):
                 yield (key, value)
             return
         else:
-            for key, value in self.client.hgetall().iteritems():
+            for key, value in self.client.hgetall(name).iteritems():
                 yield (key, value)
             return
 
