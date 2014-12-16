@@ -10,10 +10,13 @@
 # ---
 # Author: John Egan <jwegan@gmail.com>
 
+from __future__ import absolute_import
 import cPickle as pickle
 
+import redis  # Tested with redis==2.4.10
+
+import flawless.lib.config
 from flawless.lib.storage import StorageInterface
-import redis  # Recommend redis==2.4.10
 
 
 class RedisStorage(StorageInterface):
@@ -22,6 +25,8 @@ class RedisStorage(StorageInterface):
         super(RedisStorage, self).__init__(partition=partition)
         self.redis_partition_name = self.partition if self.partition else "config"
         self.client = redis.Redis(host=host, port=port, socket_timeout=socket_timeout)
+        config = flawless.lib.config.get()
+        self.redis_version = config.redis_version
 
     def _serialize(self, value):
         return pickle.dumps(value, pickle.HIGHEST_PROTOCOL)
@@ -34,18 +39,14 @@ class RedisStorage(StorageInterface):
         return obj
 
     def _hscan_iter(self, name):
-        if hasattr(self.client, "hscan_iter"):
+        if hasattr(self.client, "hscan_iter") and self.redis_version >= '2.8':
             for key, value in self.client.hscan_iter(name):
                 yield (key, value)
             return
-
-        cursor = '0'
-        while True:
-            cursor, data = self.client.execute_command('HSCAN', name, cursor)
-            for index in xrange(0, len(data), 2):
-                yield (data[index], data[index + 1])
-            if cursor == '0':
-                break
+        else:
+            for key, value in self.client.hgetall().iteritems():
+                yield (key, value)
+            return
 
     def iteritems(self):
         for key, value in self._hscan_iter(self.redis_partition_name):

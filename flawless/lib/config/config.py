@@ -75,6 +75,9 @@ OPTIONS = [
     # Logging
     FlawlessOption("log_level", "INFO", str, "The logging level"),
     FlawlessOption("log_file", None, str, "Path to the log file"),
+
+    # Storage
+    FlawlessOption("redis_version", "2.0", str, "The version of the redis server if using redis"),
 ]
 
 
