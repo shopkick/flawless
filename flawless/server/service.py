@@ -543,6 +543,7 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
     def _construct_instance(self, params, cls):
         THRIFT_SPEC_NAME_FIELD = 2
         THRIFT_SPEC_TYPE_FIELD = 1
+        THRIFT_SPEC_SUBTYPE_FIELD = 3
         init_args = inspect.getargspec(cls.__init__).args
         whitelist_attrs = [s for s in init_args if s != 'self']
         args = dict((k, params.get(k)) for k in whitelist_attrs)
@@ -556,6 +557,8 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
                 arg_type_map[spec[THRIFT_SPEC_NAME_FIELD]] = bool
             elif spec[THRIFT_SPEC_TYPE_FIELD] == TType.I64 or spec[THRIFT_SPEC_TYPE_FIELD] == TType.I32:
                 arg_type_map[spec[THRIFT_SPEC_NAME_FIELD]] = int
+            elif spec[THRIFT_SPEC_TYPE_FIELD] == TType.LIST and spec[THRIFT_SPEC_SUBTYPE_FIELD][0] == TType.STRING:
+                arg_type_map[spec[THRIFT_SPEC_NAME_FIELD]] = lambda v: [s.strip() for s in v.split(',')]
 
         # Cast args to the appropriate type
         for field, value in args.items():
