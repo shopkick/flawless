@@ -437,7 +437,7 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
         # If we've already seen this error then update the error count
         elif key in self.errors_seen:
             err_info = self.errors_seen[key]
-            err_info.error_count += 1
+            err_info.error_count += request.error_count or 1
             err_info.last_error_data = request
             cur_dt = self._convert_epoch_ms(datetime.datetime)
             err_info.last_occurrence = cur_dt.strftime("%Y-%m-%d %H:%M:%S")

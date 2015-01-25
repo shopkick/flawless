@@ -33,6 +33,7 @@ struct RecordErrorRequest {
     3: string hostname
     4: optional i64 error_threshold
     5: optional string additional_info
+    6: optional i64 error_count
 }
 
 struct ErrorInfo {

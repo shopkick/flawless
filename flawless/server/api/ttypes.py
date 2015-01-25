@@ -271,6 +271,7 @@ class RecordErrorRequest(object):
    - hostname
    - error_threshold
    - additional_info
+   - error_count
   """
 
   thrift_spec = (
@@ -280,14 +281,16 @@ class RecordErrorRequest(object):
     (3, TType.STRING, 'hostname', None, None, ), # 3
     (4, TType.I64, 'error_threshold', None, None, ), # 4
     (5, TType.STRING, 'additional_info', None, None, ), # 5
+    (6, TType.I64, 'error_count', None, None, ), # 6
   )
 
-  def __init__(self, traceback=None, exception_message=None, hostname=None, error_threshold=None, additional_info=None,):
+  def __init__(self, traceback=None, exception_message=None, hostname=None, error_threshold=None, additional_info=None, error_count=None,):
     self.traceback = traceback
     self.exception_message = exception_message
     self.hostname = hostname
     self.error_threshold = error_threshold
     self.additional_info = additional_info
+    self.error_count = error_count
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -329,6 +332,11 @@ class RecordErrorRequest(object):
           self.additional_info = iprot.readString();
         else:
           iprot.skip(ftype)
+      elif fid == 6:
+        if ftype == TType.I64:
+          self.error_count = iprot.readI64();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -361,6 +369,10 @@ class RecordErrorRequest(object):
     if self.additional_info is not None:
       oprot.writeFieldBegin('additional_info', TType.STRING, 5)
       oprot.writeString(self.additional_info)
+      oprot.writeFieldEnd()
+    if self.error_count is not None:
+      oprot.writeFieldBegin('error_count', TType.I64, 6)
+      oprot.writeI64(self.error_count)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()

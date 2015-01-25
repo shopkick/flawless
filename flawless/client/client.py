@@ -11,13 +11,15 @@
 # Author: John Egan <jwegan@gmail.com>
 
 import functools
-import traceback
+import hashlib
 import linecache
+import math
 import os.path
 import random
 import socket
 import sys
 import time
+import traceback
 import warnings
 
 from thrift.Thrift import TException
@@ -27,6 +29,7 @@ from thrift.protocol import TBinaryProtocol
 
 import flawless.client.default
 import flawless.lib.config
+from flawless.lib.data_structures.lru_cache import LRUCache
 import flawless.server.api.ttypes as api_ttypes
 from flawless.server.api import Flawless
 
@@ -39,6 +42,46 @@ NUM_FRAMES_TO_SAVE = 20
 
 BACKOFF_MS = 0
 CONSECUTIVE_CONNECTION_ERRORS = 0
+
+CACHE_ERRORS_AFTER_N_OCCURRENCES = 10
+REPORT_AFTER_N_MILLIS = 10 * 60 * 1000  # 10 minutes
+LRU_CACHE_SIZE = 200
+ERROR_CACHE = LRUCache(size=LRU_CACHE_SIZE)
+
+
+class CachedErrorInfo(object):
+
+    def __init__(self):
+        self.last_report_ts = _get_epoch_ms()
+        self.last_occur_ts = _get_epoch_ms()
+        self.curr_count = 0
+        self.last_report_count = 0
+
+    @classmethod
+    def get_hash_key(cls, stack_lines):
+        m = hashlib.md5()
+        for line in stack_lines:
+            m.update(line.filename)
+            m.update(str(line.line_number))
+        return m.digest()
+
+    def increment(self):
+        self.last_occur_ts = _get_epoch_ms()
+        self.curr_count += 1
+
+    def mark_reported(self):
+        self.last_report_ts = _get_epoch_ms()
+        diff = self.curr_count - self.last_report_count
+        self.last_report_count = self.curr_count
+        return diff
+
+    def should_report(self):
+        report_conditions = list()
+        report_conditions.append(self.curr_count <= CACHE_ERRORS_AFTER_N_OCCURRENCES)
+        report_conditions.append(self.last_report_ts < (_get_epoch_ms() - REPORT_AFTER_N_MILLIS))
+        log_count = math.log(self.curr_count, 2)
+        report_conditions.append(int(log_count) == log_count)
+        return any(report_conditions)
 
 
 def _get_epoch_ms():
@@ -116,12 +159,25 @@ def record_error(hostname, sys_traceback, exception_message, preceding_stack=Non
                                  function_name=func_name, text=line, frame_locals=frame_locals)
         )
 
+    # Check LRU cache & potentially hold off on reporting the error
+    error_count = None
+    key = CachedErrorInfo.get_hash_key(stack_lines)
+    info = ERROR_CACHE.get(key) or CachedErrorInfo()
+    info.increment()
+    ERROR_CACHE[key] = info
+    if info.should_report():
+        error_count = info.mark_reported()
+    else:
+        return
+
+    # Try to send the request. If there are too many connection errors, then backoff
     req = api_ttypes.RecordErrorRequest(
         traceback=stack_lines,
         exception_message=exception_message,
         hostname=hostname,
         error_threshold=error_threshold,
         additional_info=additional_info,
+        error_count=error_count,
     )
 
     global BACKOFF_MS
