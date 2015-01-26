@@ -27,7 +27,6 @@ from thrift.transport import TTransport
 from thrift.transport import TSocket
 from thrift.protocol import TBinaryProtocol
 
-import flawless.client.default
 import flawless.lib.config
 from flawless.lib.data_structures.lru_cache import LRUCache
 import flawless.server.api.ttypes as api_ttypes
@@ -40,13 +39,33 @@ MAX_VARIABLE_REPR = 250
 MAX_LOCALS = 100
 NUM_FRAMES_TO_SAVE = 20
 
-BACKOFF_MS = 0
-CONSECUTIVE_CONNECTION_ERRORS = 0
+HOSTPORT_INFO = list()
 
 CACHE_ERRORS_AFTER_N_OCCURRENCES = 10
 REPORT_AFTER_N_MILLIS = 10 * 60 * 1000  # 10 minutes
 LRU_CACHE_SIZE = 200
 ERROR_CACHE = LRUCache(size=LRU_CACHE_SIZE)
+
+
+class HostportInfo(object):
+
+    def __init__(self, hostport):
+        host, port = hostport.split(":")
+        self.host = host
+        self.port = int(port)
+        self.backoff_ms = 0
+        self.consecutive_connection_errors = 0
+
+    def increment_backoff(self):
+        self.consecutive_connection_errors = max(12, self.consecutive_connection_errors + 1)
+        backoff = 1000 * random.randint(1, 2 ** self.consecutive_connection_errors)
+        self.backoff_ms = _get_epoch_ms() + backoff
+
+    def decrement_backoff(self):
+        self.consecutive_connection_errors = int(self.consecutive_connection_errors / 2)
+        if self.consecutive_connection_errors > 0:
+            backoff = 1000 * random.randint(1, 2 ** self.consecutive_connection_errors)
+            self.backoff_ms = _get_epoch_ms() + backoff
 
 
 class CachedErrorInfo(object):
@@ -88,24 +107,47 @@ def _get_epoch_ms():
     return int(time.time() * 1000)
 
 
+def set_hostports(hostports):
+    if type(hostports) not in [tuple, list]:
+        raise ValueError("hostports must be a list or tuple")
+    global HOSTPORT_INFO
+    HOSTPORT_INFO = [HostportInfo(hp) for hp in hostports]
+
+
 def _get_backend_host():
-    hostports = config.flawless_hostports or flawless.client.default.hostports
-    return random.choice(hostports) if hostports else None
+    if config.flawless_hostports and not HOSTPORT_INFO:
+        set_hostports(config.flawless_hostports)
+    return random.choice(HOSTPORT_INFO) if HOSTPORT_INFO else None
 
 
 def _get_service():
-    hostport = _get_backend_host()
-    if not hostport:
+    hostport_info = _get_backend_host()
+    if not hostport_info:
         warnings.warn("Unable to record error: flawless server hostport not set", RuntimeWarning)
-        return None, None
+        return None, None, None
 
-    host, port = hostport.split(":")
-    tsocket = TSocket.TSocket(host, int(port))
+    tsocket = TSocket.TSocket(hostport_info.host, hostport_info.port)
     tsocket.setTimeout(2000)  # 2 second timeout
     transport = TTransport.TFramedTransport(tsocket)
     protocol = TBinaryProtocol.TBinaryProtocol(transport)
     client = Flawless.Client(protocol)
-    return client, transport
+    return client, transport, hostport_info
+
+
+def _send_request(req):
+    # Try to send the request. If there are too many connection errors, then backoff
+    client, transport, hostport_info = _get_service()
+    try:
+        if all([client, transport, hostport_info]) and _get_epoch_ms() >= hostport_info.backoff_ms:
+            transport.open()
+            client.record_error(req)
+            hostport_info.decrement_backoff()
+    except TException:
+        hostport_info.increment_backoff()
+        raise
+    finally:
+        if transport and transport.isOpen():
+            transport.close()
 
 
 def _myrepr(s):
@@ -113,13 +155,7 @@ def _myrepr(s):
         repr_str = repr(s)
         return repr_str[:MAX_VARIABLE_REPR] + "..." * int(len(repr_str) > MAX_VARIABLE_REPR)
     except:
-        return "Could not except repr for this field"
-
-
-def set_hostports(hostports):
-    if type(hostports) not in [tuple, list]:
-        raise ValueError("hostports must be a list or tuple")
-    flawless.client.default.hostports = hostports
+        return "Exception executing repr for this field"
 
 
 def record_error(hostname, sys_traceback, exception_message, preceding_stack=None,
@@ -153,53 +189,29 @@ def record_error(hostname, sys_traceback, exception_message, preceding_stack=Non
                                          tb.tb_frame.f_locals["self"].__dict__.items()[:MAX_LOCALS]
                                          if k != "self"))
 
-        # TODO (john): May need to prepend site-packages to filename to get correct path
         stack_lines.append(
             api_ttypes.StackLine(filename=os.path.abspath(filename), line_number=lineno,
                                  function_name=func_name, text=line, frame_locals=frame_locals)
         )
 
-    # Check LRU cache & potentially hold off on reporting the error
-    error_count = None
+    # Check LRU cache & potentially do not send error report if this client has already reported this error
+    # several times.
     key = CachedErrorInfo.get_hash_key(stack_lines)
     info = ERROR_CACHE.get(key) or CachedErrorInfo()
     info.increment()
     ERROR_CACHE[key] = info
     if info.should_report():
         error_count = info.mark_reported()
-    else:
-        return
-
-    # Try to send the request. If there are too many connection errors, then backoff
-    req = api_ttypes.RecordErrorRequest(
-        traceback=stack_lines,
-        exception_message=exception_message,
-        hostname=hostname,
-        error_threshold=error_threshold,
-        additional_info=additional_info,
-        error_count=error_count,
-    )
-
-    global BACKOFF_MS
-    global CONSECUTIVE_CONNECTION_ERRORS
-    client, transport = _get_service()
-    try:
-        if client and transport and _get_epoch_ms() >= BACKOFF_MS:
-            transport.open()
-            client.record_error(req)
-            CONSECUTIVE_CONNECTION_ERRORS = int(CONSECUTIVE_CONNECTION_ERRORS / 2)
-            if CONSECUTIVE_CONNECTION_ERRORS > 0:
-                backoff = 1000 * random.randint(1, 2 ** CONSECUTIVE_CONNECTION_ERRORS)
-                BACKOFF_MS = _get_epoch_ms() + backoff
-
-    except TException:
-        CONSECUTIVE_CONNECTION_ERRORS = max(12, CONSECUTIVE_CONNECTION_ERRORS + 1)
-        backoff = 1000 * random.randint(1, 2 ** CONSECUTIVE_CONNECTION_ERRORS)
-        BACKOFF_MS = _get_epoch_ms() + backoff
-        raise
-    finally:
-        if transport and transport.isOpen():
-            transport.close()
+        _send_request(
+            api_ttypes.RecordErrorRequest(
+                traceback=stack_lines,
+                exception_message=exception_message,
+                hostname=hostname,
+                error_threshold=error_threshold,
+                additional_info=additional_info,
+                error_count=error_count,
+            )
+        )
 
 
 def _safe_wrap(func):

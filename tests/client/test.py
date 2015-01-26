@@ -51,7 +51,8 @@ class BaseErrorsTestCase(unittest.TestCase):
     def setUp(self):
         self.client_stub = FlawlessServiceStub()
         self.saved_get_get_service = flawless.client.client._get_service
-        setattr(flawless.client.client, "_get_service", lambda: (self.client_stub, TransportStub()))
+        setattr(flawless.client.client, "_get_service",
+                lambda: (self.client_stub, TransportStub(), flawless.client.client.HOSTPORT_INFO[0]))
         self.saved_config = copy.deepcopy(flawless.lib.config.get().__dict__)
         self.test_config = flawless.lib.config.get()
         self.test_config.__dict__ = dict((o.name, o.default) for o in flawless.lib.config.OPTIONS)
@@ -130,10 +131,10 @@ class FunctionDecoratorTestCase(BaseErrorsTestCase):
         self.assertEqual(None, req_obj.error_threshold)
 
     def test_does_not_call_flawless_if_backoff(self):
-        flawless.client.client.BACKOFF_MS = int(time.time() * 1000) + 1000
+        flawless.client.client.HOSTPORT_INFO[0].backoff_ms = int(time.time() * 1000) + 1000
         self.assertRaises(Exception, self.example_func, fail=True)
         self.assertEqual(None, self.client_stub.record_error.last_args)
-        flawless.client.client.BACKOFF_MS = 0
+        flawless.client.client.HOSTPORT_INFO[0].backoff_ms = 0
 
     def test_does_not_call_flawless_if_error_is_being_cached(self):
         for i in range(flawless.client.client.CACHE_ERRORS_AFTER_N_OCCURRENCES * 2):

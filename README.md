@@ -52,9 +52,6 @@ django or pylons/pyramid, simply add the flawless.client.middleware to your appl
 you can wrap particular functions or entire classes by using flawless.client.decorators. View the
 examples directory for some actual code examples.
 
-    Tip: Edit flawless.client.default.py and set the default host:port for your Flawless server
-
-
 
 How it Works
 ------------

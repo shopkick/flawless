@@ -27,7 +27,5 @@ application = FlawlessMiddleware(application)
 # Option 1: Set flawless_hostport in the config file and call flawless.lib.config.init_config
 flawless.lib.config.init_config("../config/flawless.cfg")
 
-# Option 2: Manually edit flawless/client/default.py and hardcode the value for hostport
-
-# Option 3: Call set_hostport
+# Option 2: Call set_hostport
 flawless.client.set_hostport("localhost:9028")
