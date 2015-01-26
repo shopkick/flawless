@@ -19,12 +19,12 @@ flawless.egg-info/top_level.txt
 flawless/client/__init__.py
 flawless/client/client.py
 flawless/client/decorators.py
-flawless/client/default.py
 flawless/client/middleware.py
 flawless/lib/__init__.py
 flawless/lib/config/__init__.py
 flawless/lib/config/config.py
 flawless/lib/data_structures/__init__.py
+flawless/lib/data_structures/lru_cache.py
 flawless/lib/data_structures/persistent_dictionary.py
 flawless/lib/data_structures/prefix_tree.py
 flawless/lib/data_structures/proxy_container.py
@@ -51,6 +51,7 @@ tests/client/__init__.py
 tests/client/test.py
 tests/lib/__init__.py
 tests/lib/data_structures/__init__.py
+tests/lib/data_structures/lru_cache_test.py
 tests/lib/data_structures/prefix_tree_test.py
 tests/server/__init__.py
 tests/server/service_test.py
