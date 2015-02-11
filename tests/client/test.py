@@ -103,6 +103,7 @@ class ClassDecoratorTestCase(BaseErrorsTestCase):
 class FunctionDecoratorTestCase(BaseErrorsTestCase):
     def setUp(self):
         super(FunctionDecoratorTestCase, self).setUp()
+        flawless.client.client.SCRUBBED_VARIABLES_REGEX = None
 
     @flawless.client.decorators.wrap_function
     def example_func(self, fail=False, retval=None):
@@ -115,6 +116,13 @@ class FunctionDecoratorTestCase(BaseErrorsTestCase):
     def second_example_func(self, fail=False, retval=None):
         if fail:
             raise Exception("woohoo")
+        return retval
+
+    @flawless.client.decorators.wrap_function
+    def scrubber_example_func(self, fail=False, retval=None):
+        password = "banana"
+        if fail:
+            raise Exception(":(")
         return retval
 
     def test_returns_correct_result(self):
@@ -161,6 +169,18 @@ class FunctionDecoratorTestCase(BaseErrorsTestCase):
             if row.function_name == "example_func":
                 errorFound = True
                 self.assertEquals('7', row.frame_locals['myvar'])
+        self.assertTrue(errorFound)
+        self.assertEqual(None, req_obj.error_threshold)
+
+    def test_scrubbing(self):
+        flawless.client.client.install_scrubbers("password")
+        self.assertRaises(Exception, self.scrubber_example_func, fail=True)
+        errorFound = False
+        req_obj = self.client_stub.record_error.last_args['request']
+        for row in req_obj.traceback:
+            if row.function_name == "scrubber_example_func":
+                errorFound = True
+                self.assertEquals('**scrubbed**', row.frame_locals['password'])
         self.assertTrue(errorFound)
         self.assertEqual(None, req_obj.error_threshold)
 

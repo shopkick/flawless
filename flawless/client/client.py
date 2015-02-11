@@ -16,6 +16,7 @@ import linecache
 import math
 import os.path
 import random
+import re
 import socket
 import sys
 import time
@@ -40,6 +41,7 @@ MAX_LOCALS = 100
 NUM_FRAMES_TO_SAVE = 20
 
 HOSTPORT_INFO = list()
+SCRUBBED_VARIABLES_REGEX = None
 
 CACHE_ERRORS_AFTER_N_OCCURRENCES = 10
 REPORT_AFTER_N_MILLIS = 10 * 60 * 1000  # 10 minutes
@@ -114,6 +116,11 @@ def set_hostports(hostports):
     HOSTPORT_INFO = [HostportInfo(hp) for hp in hostports]
 
 
+def install_scrubbers(variables_regex):
+    global SCRUBBED_VARIABLES_REGEX
+    SCRUBBED_VARIABLES_REGEX = re.compile(variables_regex)
+
+
 def _get_backend_host():
     if config.flawless_hostports and not HOSTPORT_INFO:
         set_hostports(config.flawless_hostports)
@@ -150,9 +157,12 @@ def _send_request(req):
             transport.close()
 
 
-def _myrepr(s):
+def _myrepr(var_name, value):
     try:
-        repr_str = repr(s)
+        if SCRUBBED_VARIABLES_REGEX and SCRUBBED_VARIABLES_REGEX.match(var_name):
+            return '**scrubbed**'
+
+        repr_str = repr(value)
         return repr_str[:MAX_VARIABLE_REPR] + "..." * int(len(repr_str) > MAX_VARIABLE_REPR)
     except:
         return "Exception executing repr for this field"
@@ -182,10 +192,10 @@ def record_error(hostname, sys_traceback, exception_message, preceding_stack=Non
         if index >= (len(stack) - NUM_FRAMES_TO_SAVE):
             # Include some limits on max string length & number of variables to keep things from getting
             # out of hand
-            frame_locals = dict((k, _myrepr(v)) for k, v in
+            frame_locals = dict((k, _myrepr(k, v)) for k, v in
                                 tb.tb_frame.f_locals.items()[:MAX_LOCALS] if k != "self")
             if "self" in tb.tb_frame.f_locals and hasattr(tb.tb_frame.f_locals["self"], "__dict__"):
-                frame_locals.update(dict(("self." + k, _myrepr(v)) for k, v in
+                frame_locals.update(dict(("self." + k, _myrepr(k, v)) for k, v in
                                          tb.tb_frame.f_locals["self"].__dict__.items()[:MAX_LOCALS]
                                          if k != "self"))
 

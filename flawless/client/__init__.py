@@ -11,4 +11,5 @@
 # Author: John Egan <jwegan@gmail.com>
 
 from flawless.client.client import set_hostports
+from flawless.client.client import install_scrubbers
 from flawless.client.client import record_error
