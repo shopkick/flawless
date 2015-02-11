@@ -272,6 +272,7 @@ class RecordErrorRequest(object):
    - error_threshold
    - additional_info
    - error_count
+   - exception_type
   """
 
   thrift_spec = (
@@ -282,15 +283,17 @@ class RecordErrorRequest(object):
     (4, TType.I64, 'error_threshold', None, None, ), # 4
     (5, TType.STRING, 'additional_info', None, None, ), # 5
     (6, TType.I64, 'error_count', None, None, ), # 6
+    (7, TType.STRING, 'exception_type', None, None, ), # 7
   )
 
-  def __init__(self, traceback=None, exception_message=None, hostname=None, error_threshold=None, additional_info=None, error_count=None,):
+  def __init__(self, traceback=None, exception_message=None, hostname=None, error_threshold=None, additional_info=None, error_count=None, exception_type=None,):
     self.traceback = traceback
     self.exception_message = exception_message
     self.hostname = hostname
     self.error_threshold = error_threshold
     self.additional_info = additional_info
     self.error_count = error_count
+    self.exception_type = exception_type
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -337,6 +340,11 @@ class RecordErrorRequest(object):
           self.error_count = iprot.readI64();
         else:
           iprot.skip(ftype)
+      elif fid == 7:
+        if ftype == TType.STRING:
+          self.exception_type = iprot.readString();
+        else:
+          iprot.skip(ftype)
       else:
         iprot.skip(ftype)
       iprot.readFieldEnd()
@@ -373,6 +381,10 @@ class RecordErrorRequest(object):
     if self.error_count is not None:
       oprot.writeFieldBegin('error_count', TType.I64, 6)
       oprot.writeI64(self.error_count)
+      oprot.writeFieldEnd()
+    if self.exception_type is not None:
+      oprot.writeFieldBegin('exception_type', TType.STRING, 7)
+      oprot.writeString(self.exception_type)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()
@@ -1162,6 +1174,90 @@ class CodeIdentifierList(object):
       oprot.writeListBegin(TType.STRUCT, len(self.identifiers))
       for iter52 in self.identifiers:
         iter52.write(oprot)
+      oprot.writeListEnd()
+      oprot.writeFieldEnd()
+    if self.last_update_ts is not None:
+      oprot.writeFieldBegin('last_update_ts', TType.I64, 2)
+      oprot.writeI64(self.last_update_ts)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class IgnoredExceptionList(object):
+  """
+  Attributes:
+   - exceptions
+   - last_update_ts
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.LIST, 'exceptions', (TType.STRING,None), [
+    ], ), # 1
+    (2, TType.I64, 'last_update_ts', None, None, ), # 2
+  )
+
+  def __init__(self, exceptions=thrift_spec[1][4], last_update_ts=None,):
+    if exceptions is self.thrift_spec[1][4]:
+      exceptions = [
+    ]
+    self.exceptions = exceptions
+    self.last_update_ts = last_update_ts
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.LIST:
+          self.exceptions = []
+          (_etype56, _size53) = iprot.readListBegin()
+          for _i57 in xrange(_size53):
+            _elem58 = iprot.readString();
+            self.exceptions.append(_elem58)
+          iprot.readListEnd()
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.I64:
+          self.last_update_ts = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('IgnoredExceptionList')
+    if self.exceptions is not None:
+      oprot.writeFieldBegin('exceptions', TType.LIST, 1)
+      oprot.writeListBegin(TType.STRING, len(self.exceptions))
+      for iter59 in self.exceptions:
+        oprot.writeString(iter59)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.last_update_ts is not None:

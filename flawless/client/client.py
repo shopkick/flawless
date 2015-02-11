@@ -168,10 +168,11 @@ def _myrepr(var_name, value):
         return "Exception executing repr for this field"
 
 
-def record_error(hostname, sys_traceback, exception_message, preceding_stack=None,
-                 error_threshold=None, additional_info=None):
+def record_error(hostname, exc_info, preceding_stack=None, error_threshold=None, additional_info=None):
     ''' Helper function to record errors to the flawless backend '''
     stack = []
+    exc_type, exc_value, sys_traceback = exc_info
+
     while sys_traceback is not None:
         stack.append(sys_traceback)
         sys_traceback = sys_traceback.tb_next
@@ -215,7 +216,8 @@ def record_error(hostname, sys_traceback, exception_message, preceding_stack=Non
         _send_request(
             api_ttypes.RecordErrorRequest(
                 traceback=stack_lines,
-                exception_message=exception_message,
+                exception_message=repr(exc_value),
+                exception_type=exc_type.__module__ + "." + exc_type.__name__,
                 hostname=hostname,
                 error_threshold=error_threshold,
                 additional_info=additional_info,
@@ -257,9 +259,8 @@ def _wrap_function_with_error_decorator(func,
             hostname = socket.gethostname()
             record_error(
                 hostname=hostname,
-                sys_traceback=sys_traceback,
+                exc_info=(type, value, sys_traceback),
                 preceding_stack=preceding_stack,
-                exception_message=repr(value),
                 error_threshold=error_threshold,
             )
 

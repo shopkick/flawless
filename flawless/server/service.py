@@ -105,6 +105,8 @@ class FlawlessServiceBaseClass(object):
                                                            api_ttypes.CodeIdentifierList())
         self.known_errors = self._parse_whitelist(config_storage["known_errors"] or
                                                   api_ttypes.KnownErrorList())
+        self.ignored_exceptions = set((config_storage["ignored_exceptions"] or
+                                       api_ttypes.IgnoredExceptionList()).exceptions)
 
         # Watchers
         self.watch_all_errors, self.watch_only_if_blamed = self._parse_watchers_file(config_storage["watch_list"] or
@@ -217,8 +219,12 @@ class FlawlessServiceBaseClass(object):
     def _format_traceback(self, request, append_locals=True, show_full_stack=False,
                           linebreak="<br />", spacer="&nbsp;", start_bold="<strong>",
                           end_bold="</strong>", escape_func=cgi.escape):
-        # Traceback
         parts = []
+        if request.exception_type:
+            parts.append("{b}Exception Type:{xb} {type}{lb}".format(
+                b=start_bold, xb=end_bold, type=request.exception_type, lb=linebreak))
+
+        # Traceback
         parts.append("{b}Traceback (most recent call last):{xb}".format(b=start_bold, xb=end_bold))
         formatted_stack = [
             '{sp}{sp}File "{filename}", line {line}, in {function}{lb}{sp}{sp}{sp}{sp}{code}'.format(
@@ -385,6 +391,10 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
 
     def _record_error(self, request):
         log.debug("Recieved error from %s for %s" % (request.hostname, request.exception_message))
+
+        # Skip ignored exceptions (ex: connection errors)
+        if request.exception_type and request.exception_type in self.ignored_exceptions:
+            return
 
         # Figure out which line in the stack trace is to blame for the error
         key, blamed_entry, email_recipients, was_whitelisted = self._blame_line(request.traceback)
@@ -790,6 +800,43 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
         config_storage.close()
         return "<html><body>SUCCESS</body></html>"
 
+    def add_ignored_exception(self):
+        return """
+            <html>
+                <head>
+                    <title>Add Ignored Exception</title>
+                </head>
+                <body>
+                <div>
+                    Instructions: Enter the full module path for the exception (ex: exceptions.ValueError)
+                </div><br /><br />
+                <form action='save_ignored_exceptions' method='POST'>
+                    <table>
+                        <tr><td>* = Required</td></tr>
+                        <tr>
+                            <td>* Exception Path:</td>
+                            <td><input name='exc_name' type='text' size='50'/></td>
+                        </tr>
+                    </table>
+                    <input type='submit'></input>
+                </form>
+             </body>
+            </html>
+        """
+
+    def save_ignored_exceptions(self, request):
+        params = dict(urlparse.parse_qsl(request))
+        config_storage = self.storage_factory(partition=None)
+        config_storage.open()
+        current_value = config_storage["ignored_exceptions"] or api_ttypes.IgnoredExceptionList()
+        if params['exc_name'] not in current_value.exceptions:
+            current_value.exceptions.append(params['exc_name'])
+        current_value.last_update_ts = self._epoch_ms()
+        config_storage["ignored_exceptions"] = current_value
+        config_storage.sync()
+        config_storage.close()
+        return "<html><body>SUCCESS</body></html>"
+
     def view_config(self, key):
         config_storage = self.storage_factory(partition=None)
         config_storage.open()
@@ -808,7 +855,9 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
                     <title>Flawless Config</title>
                 </head>
                 <body style='font-family: courier; font-size: 10pt'>
-                    {data}
+                    <pre>
+                        {data}
+                    </pre>
                 </body>
             </html>
         """.format(data=data)

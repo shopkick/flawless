@@ -34,6 +34,7 @@ struct RecordErrorRequest {
     4: optional i64 error_threshold
     5: optional string additional_info
     6: optional i64 error_count
+    7: string exception_type
 }
 
 struct ErrorInfo {
@@ -86,6 +87,11 @@ struct CodeIdentifier {
 
 struct CodeIdentifierList {
     1: list<CodeIdentifier> identifiers = []
+    2: i64 last_update_ts
+}
+
+struct IgnoredExceptionList {
+    1: list<string> exceptions = []
     2: i64 last_update_ts
 }
 

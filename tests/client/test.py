@@ -137,6 +137,7 @@ class FunctionDecoratorTestCase(BaseErrorsTestCase):
                 errorFound = True
         self.assertTrue(errorFound)
         self.assertEqual(None, req_obj.error_threshold)
+        self.assertEqual('exceptions.Exception', req_obj.exception_type)
 
     def test_does_not_call_flawless_if_backoff(self):
         flawless.client.client.HOSTPORT_INFO[0].backoff_ms = int(time.time() * 1000) + 1000
