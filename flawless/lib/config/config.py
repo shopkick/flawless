@@ -38,6 +38,8 @@ OPTIONS = [
     FlawlessOption("smtp_host", "localhost:25", str, "The host responsbile for sending email"),
     FlawlessOption("smtp_user", None, str, "Username for smtp server (if required)"),
     FlawlessOption("smtp_password", None, str, "Password for smtp server (if required)"),
+    FlawlessOption("smtp_use_tls", False, bool, "Use TLs for smtp server"),
+    FlawlessOption("smtp_from", None, str, "From address to send emails from"),
 
     # Directory paths
     FlawlessOption("data_dir_path", "/tmp/", str, "Path to where flawless can store state to disk"),

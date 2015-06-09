@@ -335,9 +335,6 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
         return True
 
     def _sendmail(self, to_addresses, subject, body):
-        host, port = config.smtp_host.split(":")
-        smtp_client = self.smtp_client_cls(host, int(port))
-
         invalid_addresses = [e for e in to_addresses if not bool(self.VALIDATE_EMAIL_PATTERN.match(e))]
         if invalid_addresses:
             to_addresses = [e for e in to_addresses if e not in invalid_addresses]
@@ -347,12 +344,18 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
             )
 
         msg = email.MIMEText.MIMEText(body.encode("UTF-8"), "html", "UTF-8")
-        msg["From"] = "flawless@%s" % config.email_domain_name
+        msg["From"] = config.smtp_from or "flawless@%s" % config.email_domain_name
         msg["To"] = ", ".join(to_addresses)
         msg["Subject"] = subject
 
+        host, port = config.smtp_host.split(":")
+        smtp_client = self.smtp_client_cls(host, int(port))
+
+        if config.smtp_use_tls:
+            smtp_client.starttls()
         if config.smtp_user and config.smtp_password:
             smtp_client.login(config.smtp_user, config.smtp_password)
+
         smtp_client.sendmail(msg["From"], to_addresses, msg.as_string())
         smtp_client.quit()
 
