@@ -802,7 +802,7 @@ class KnownError(object):
    - max_alert_threshold
    - email_recipients
    - email_header
-   - alert_every_n_occurences
+   - alert_every_n_occurrences
   """
 
   thrift_spec = (
@@ -814,10 +814,10 @@ class KnownError(object):
     (5, TType.I64, 'max_alert_threshold', None, None, ), # 5
     (6, TType.LIST, 'email_recipients', (TType.STRING,None), None, ), # 6
     (7, TType.STRING, 'email_header', None, None, ), # 7
-    (8, TType.I64, 'alert_every_n_occurences', None, None, ), # 8
+    (8, TType.I64, 'alert_every_n_occurrences', None, None, ), # 8
   )
 
-  def __init__(self, filename=None, function_name=None, code_fragment=None, min_alert_threshold=None, max_alert_threshold=None, email_recipients=None, email_header=None, alert_every_n_occurences=None,):
+  def __init__(self, filename=None, function_name=None, code_fragment=None, min_alert_threshold=None, max_alert_threshold=None, email_recipients=None, email_header=None, alert_every_n_occurrences=None,):
     self.filename = filename
     self.function_name = function_name
     self.code_fragment = code_fragment
@@ -825,7 +825,7 @@ class KnownError(object):
     self.max_alert_threshold = max_alert_threshold
     self.email_recipients = email_recipients
     self.email_header = email_header
-    self.alert_every_n_occurences = alert_every_n_occurences
+    self.alert_every_n_occurrences = alert_every_n_occurrences
 
   def read(self, iprot):
     if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
@@ -878,7 +878,7 @@ class KnownError(object):
           iprot.skip(ftype)
       elif fid == 8:
         if ftype == TType.I64:
-          self.alert_every_n_occurences = iprot.readI64();
+          self.alert_every_n_occurrences = iprot.readI64();
         else:
           iprot.skip(ftype)
       else:
@@ -922,9 +922,9 @@ class KnownError(object):
       oprot.writeFieldBegin('email_header', TType.STRING, 7)
       oprot.writeString(self.email_header)
       oprot.writeFieldEnd()
-    if self.alert_every_n_occurences is not None:
-      oprot.writeFieldBegin('alert_every_n_occurences', TType.I64, 8)
-      oprot.writeI64(self.alert_every_n_occurences)
+    if self.alert_every_n_occurrences is not None:
+      oprot.writeFieldBegin('alert_every_n_occurrences', TType.I64, 8)
+      oprot.writeI64(self.alert_every_n_occurrences)
       oprot.writeFieldEnd()
     oprot.writeFieldStop()
     oprot.writeStructEnd()

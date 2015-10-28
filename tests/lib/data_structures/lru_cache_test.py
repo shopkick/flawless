@@ -19,7 +19,7 @@ class LRUCacheTestCase(unittest.TestCase):
         self.size = 5
         self.cache = LRUCache(size=self.size)
 
-    def test_non_existant_key(self):
+    def test_non_existent_key(self):
         self.assertEquals(None, self.cache.get("abc"))
 
     def test_purges_least_recently_used(self):
