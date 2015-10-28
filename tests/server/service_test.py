@@ -93,7 +93,7 @@ class BaseTestCase(unittest.TestCase):
                               'api_ttypes.WaterbowlErrorCode.OUT_OF_WATER, message=str(e))',
                 email_recipients=["wilfred@shopkick.com", "snoopy@shopkick.com"],
                 email_header='NOTE: This error typically does not require dev team involvement.',
-                alert_every_n_occurences=1,
+                alert_every_n_occurrences=1,
             ),
         ])
 

@@ -412,7 +412,7 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
         # If this error hasn't been reported before, then find the dev responsible
         err_info = None
         if key not in self.errors_seen:
-            # If flawless is being flooded wih errors, limit the number of git blames so the
+            # If flawless is being flooded with errors, limit the number of git blames so the
             # service doesn't fall over. We don't use a thread safe counter, because 10
             # git blames is just a soft limit
             if self.number_of_git_blames_running > config.max_concurrent_git_blames:
@@ -470,14 +470,14 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
         else:
             # If it is a known error, we allow fine grainted control of how frequently emails will
             # be sent. An email will be sent if it has passed the min_alert_threshold, and/or this
-            # is the Nth occurrence as defined alert_every_n_occurences. If it has passed
+            # is the Nth occurrence as defined alert_every_n_occurrences. If it has passed
             # max_alert_threshold then no emails will be sent.
             known_entry = self._get_entry(blamed_entry, self.known_errors)
             if (known_entry.min_alert_threshold and err_info.error_count >= known_entry.min_alert_threshold
                     and not err_info.email_sent):
                 send_email = True
-            if (known_entry.alert_every_n_occurences and
-                    err_info.error_count % known_entry.alert_every_n_occurences == 0):
+            if (known_entry.alert_every_n_occurrences and
+                    err_info.error_count % known_entry.alert_every_n_occurrences == 0):
                 send_email = True
             if (known_entry.max_alert_threshold is not None
                     and err_info.error_count > known_entry.max_alert_threshold):
@@ -693,7 +693,7 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
                         </tr>
                         <tr>
                             <td>** Alert Every N Occurrences:</td>
-                            <td><input name='alert_every_n_occurences' type='text' /></td>
+                            <td><input name='alert_every_n_occurrences' type='text' /></td>
                         </tr>
                         <tr>
                             <td>Email Recipients CSV:</td>
