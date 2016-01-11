@@ -595,7 +595,7 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
                 developer_score[value.developer_email] += value.error_count
 
         for developer, score in sorted(developer_score.items(), key=lambda t: t[1], reverse=True):
-            html_parts.append("<strong>%s (score: %d)</strong>" % (developer, score))
+            html_parts.append("<strong id=\"%s\">%s (score: %d)</strong>" % (developer.replace('"', '\''), developer, score))
             for err_key, err_info in grouped_errors[developer]:
                 html_parts.append("Number of Occurrences: " + str(err_info.error_count))
                 html_parts.append("Last Occurred: " + err_info.last_occurrence)
