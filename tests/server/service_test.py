@@ -105,12 +105,21 @@ class BaseTestCase(unittest.TestCase):
 
         self.ignored_exceptions = api_ttypes.IgnoredExceptionList(['exceptions.BananaException'])
 
+        self.disowned_files = api_ttypes.FileDisownershipList([
+            api_ttypes.FileDisownershipEntry(
+                email='wishbone@shopkick.com',
+                filepath='scripts',
+                designated_email='lassie@shopkick.com'
+            )
+        ])
+
         self.config_storage_stub = StubStorage(partition=None)
         self.config_storage_stub["watch_list"] = self.watchers
         self.config_storage_stub["third_party_whitelist"] = self.third_party_whitelist
         self.config_storage_stub["known_errors"] = self.known_errors
         self.config_storage_stub["building_blocks"] = self.building_blocks
         self.config_storage_stub["ignored_exceptions"] = self.ignored_exceptions
+        self.config_storage_stub["disownership_list"] = self.disowned_files
         self.errors_storage_stub = StubStorage(partition=None)
 
         self.saved_config = copy.deepcopy(flawless.lib.config.get().__dict__)
@@ -123,6 +132,7 @@ class BaseTestCase(unittest.TestCase):
             r"^coreservices(?!.*/thrift/).*$",
             r"lib/.*",
             r"tools/.*",
+            r"scripts/.*"
         ]
         self.test_config.report_runtime_package_directory_names = ["site-packages"]
         self.test_config.config_dir_path = "../config"
@@ -497,6 +507,31 @@ class RecordErrorTestCase(BaseTestCase):
                 1, "wishbone@shopkick.com", "2017-07-30 00:00:00", True, "2020-01-01 00:00:00",
                 is_known_error=False, last_error_data=req)},
             self.handler.errors_seen.dict)
+
+    def test_handles_disowned_files(self):
+        req = api_ttypes.RecordErrorRequest(
+            traceback=[api_ttypes.StackLine("/site-packages/lib/test.py", 5, "test_func", "code"),
+                       api_ttypes.StackLine("/site-packages/scripts/my_script.py", 7, "run_all", "code"),
+                       api_ttypes.StackLine("/site-packages/thirdparty/3rdparty_lib.py", 9, "call", "x")],
+            exception_message="email text",
+            hostname="localhost",
+        )
+
+        self.handler.record_error(req)
+        self.assertDictEquals({
+            api_ttypes.ErrorKey("scripts/my_script.py", 7, "run_all", "code"): api_ttypes.ErrorInfo(
+                1, "lassie@shopkick.com", "2017-07-30 00:00:00", True, "2020-01-01 00:00:00",
+                is_known_error=False, last_error_data=req)},
+            self.handler.errors_seen.dict)
+        self.assertEqual(["git", "--git-dir=/tmp/.git", "--work-tree=/tmp", "blame",
+                          "-p", "/tmp/scripts/my_script.py", "-L", "7,+1"],
+                         self.popen_stub.last_args)
+        self.assertEmailEquals(dict(to_addresses=["lassie@shopkick.com"],
+                                    from_address="flawless@example.com",
+                                    subject="Error on localhost in scripts/my_script.py",
+                                    body="email text",
+                                    smtp_server_host_port=None),
+                               self.smtp_stub.last_args)
 
 
 ############################## Stubs ##############################

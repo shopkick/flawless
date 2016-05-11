@@ -111,6 +111,8 @@ class FlawlessServiceBaseClass(object):
         # Watchers
         self.watch_all_errors, self.watch_only_if_blamed = self._parse_watchers_file(config_storage["watch_list"] or
                                                                                      api_ttypes.WatchList())
+        self.disownerships = self._parse_disownership(config_storage["disownership_list"] or
+                                                      api_ttypes.FileDisownershipList())
 
         # Email remapping
         self.email_remapping = config_storage["email_remapping"] or api_ttypes.EmailRemapping()
@@ -141,6 +143,22 @@ class FlawlessServiceBaseClass(object):
         )
 
         return all_error_tree, blame_only_tree
+
+    def _parse_disownership(self, disownership_list):
+        disownership_tree = prefix_tree.FilePathTree()
+        for entry in disownership_list.disownerships:
+            if entry.filepath not in disownership_tree:
+                disownership_tree[entry.filepath] = list()
+            disownership_tree[entry.filepath].append(entry)
+
+        # Set disownership_tree to have accumulator that will allow us to find everyone who has disowned
+        # the file or a parent of the file
+        disownership_tree.set_accumulator(
+            accumulator_intializer=list(),
+            accumulator_func=lambda x, y: x + y if y else x,
+        )
+        return disownership_tree
+
 
     ############################## Timestamp Helpers ##############################
 
@@ -424,9 +442,13 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
                 email, last_touched_ts = self.repository.blame(key.filename, key.line_number)
             finally:
                 self.number_of_git_blames_running -= 1
-            dev_email = self._get_email(email)
-            last_touched_ts = last_touched_ts or 0
 
+            dev_email = self._get_email(email)
+            if key.filename in self.disownerships:
+                remapped_owners = {entry.email: entry.designated_email for entry in self.disownerships[key.filename]}
+                dev_email = remapped_owners.get(dev_email, dev_email)
+
+            last_touched_ts = last_touched_ts or 0
             cur_time = self._convert_epoch_ms(datetime.datetime).strftime("%Y-%m-%d %H:%M:%S")
             mod_time = self._convert_epoch_ms(datetime.datetime, epoch_ms=last_touched_ts * 1000)
             mod_time = mod_time.strftime("%Y-%m-%d %H:%M:%S")
@@ -638,6 +660,34 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
             </html>
         """.format(data=datastr)
 
+    def admin(self):
+        return """
+            <html>
+                <head>
+                    <title>Flawless Admin Panel</title>
+                </head>
+                <body>
+                <div>
+                    <b>Change Configuration</b><br />
+                    <a href="add_known_error">Add Known Error</a><br />
+                    <a href="add_watch">Add File Watcher</a><br />
+                    <a href="remap_email">Remap Invalid Email Address</a><br />
+                    <a href="disown_file">Disown a File</a><br />
+                    <a href="add_ignored_exception">Add Ignored Exception Type</a><br />
+                    <br /><br />
+                    <b>View Configuration</b><br />
+                    <a href="view_config?key=building_blocks">View Building Blocks</a><br />
+                    <a href="view_config?key=third_party_whitelist">View Thirdparty Whitelist</a><br />
+                    <a href="view_config?key=known_errors">View Whitelisted Errors</a><br />
+                    <a href="view_config?key=ignored_exceptions">View Ignored Exception Types</a><br />
+                    <a href="view_config?key=watch_list">View File Watch List</a><br />
+                    <a href="view_config?key=disownership_list">View File Disownership List</a><br />
+                    <a href="view_config?key=email_remapping">View Email Remapping</a><br />
+                </div>
+             </body>
+            </html>
+        """
+
     ############################## Add New Known Error ##############################
 
     def add_known_error(self, filename="", function_name="", code_fragment=""):
@@ -801,6 +851,44 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
         config_storage["email_remapping"] = current_value
         config_storage.sync()
         config_storage.close()
+        return "<html><body>SUCCESS</body></html>"
+
+    def disown_file(self):
+        return """
+            <html>
+                <head>
+                    <title>Disown File</title>
+                </head>
+                <body>
+                <div>
+                    Instructions: Fill out filepath, your email & the new email to send reports to.
+                </div><br /><br />
+                <form action='save_disown_file' method='POST'>
+                    <table>
+                        <tr><td>* = Required</td></tr>
+                        <tr>
+                            <td>* Filepath:</td>
+                            <td><input name='filepath' type='text' size='50'/></td>
+                        </tr>
+                        <tr>
+                            <td>* Your Email:</td>
+                            <td><input name='email' type='text' size='50'/></td>
+                        </tr>
+                        <tr>
+                            <td>* New Email:</td>
+                            <td><input name='designated_email' type='text' size='50'/></td>
+                        </tr>
+                    </table>
+                    <input type='submit'></input>
+                </form>
+             </body>
+            </html>
+        """
+
+    def save_disown_file(self, request):
+        params = dict(urlparse.parse_qsl(request))
+        new_entry = self._construct_instance(params, api_ttypes.FileDisownershipEntry)
+        self._add_new_entry_to_config("disownership_list", new_entry, attr="disownerships")
         return "<html><body>SUCCESS</body></html>"
 
     def add_ignored_exception(self):

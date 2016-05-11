@@ -52,6 +52,17 @@ struct EmailRemapping {
     2: i64 last_update_ts
 }
 
+struct FileDisownershipEntry {
+    1: string email
+    2: string filepath
+    3: string designated_email
+}
+
+struct FileDisownershipList {
+    1: list<FileDisownershipEntry> disownerships = []
+    2: i64 last_update_ts
+}
+
 struct WatchFileEntry {
     1: string email
     2: string filepath
@@ -71,7 +82,7 @@ struct KnownError {
     5: optional i64 max_alert_threshold
     6: optional list<string> email_recipients
     7: optional string email_header
-    8: optional i64 alert_every_n_occurences
+    8: optional i64 alert_every_n_occurrences
 }
 
 struct KnownErrorList {

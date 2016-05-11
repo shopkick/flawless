@@ -623,6 +623,175 @@ class EmailRemapping(object):
   def __ne__(self, other):
     return not (self == other)
 
+class FileDisownershipEntry(object):
+  """
+  Attributes:
+   - email
+   - filepath
+   - designated_email
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.STRING, 'email', None, None, ), # 1
+    (2, TType.STRING, 'filepath', None, None, ), # 2
+    (3, TType.STRING, 'designated_email', None, None, ), # 3
+  )
+
+  def __init__(self, email=None, filepath=None, designated_email=None,):
+    self.email = email
+    self.filepath = filepath
+    self.designated_email = designated_email
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.STRING:
+          self.email = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.STRING:
+          self.filepath = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      elif fid == 3:
+        if ftype == TType.STRING:
+          self.designated_email = iprot.readString();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('FileDisownershipEntry')
+    if self.email is not None:
+      oprot.writeFieldBegin('email', TType.STRING, 1)
+      oprot.writeString(self.email)
+      oprot.writeFieldEnd()
+    if self.filepath is not None:
+      oprot.writeFieldBegin('filepath', TType.STRING, 2)
+      oprot.writeString(self.filepath)
+      oprot.writeFieldEnd()
+    if self.designated_email is not None:
+      oprot.writeFieldBegin('designated_email', TType.STRING, 3)
+      oprot.writeString(self.designated_email)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
+class FileDisownershipList(object):
+  """
+  Attributes:
+   - disownerships
+   - last_update_ts
+  """
+
+  thrift_spec = (
+    None, # 0
+    (1, TType.LIST, 'disownerships', (TType.STRUCT,(FileDisownershipEntry, FileDisownershipEntry.thrift_spec)), [
+    ], ), # 1
+    (2, TType.I64, 'last_update_ts', None, None, ), # 2
+  )
+
+  def __init__(self, disownerships=thrift_spec[1][4], last_update_ts=None,):
+    if disownerships is self.thrift_spec[1][4]:
+      disownerships = [
+    ]
+    self.disownerships = disownerships
+    self.last_update_ts = last_update_ts
+
+  def read(self, iprot):
+    if iprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None and fastbinary is not None:
+      fastbinary.decode_binary(self, iprot.trans, (self.__class__, self.thrift_spec))
+      return
+    iprot.readStructBegin()
+    while True:
+      (fname, ftype, fid) = iprot.readFieldBegin()
+      if ftype == TType.STOP:
+        break
+      if fid == 1:
+        if ftype == TType.LIST:
+          self.disownerships = []
+          (_etype28, _size25) = iprot.readListBegin()
+          for _i29 in xrange(_size25):
+            _elem30 = FileDisownershipEntry()
+            _elem30.read(iprot)
+            self.disownerships.append(_elem30)
+          iprot.readListEnd()
+        else:
+          iprot.skip(ftype)
+      elif fid == 2:
+        if ftype == TType.I64:
+          self.last_update_ts = iprot.readI64();
+        else:
+          iprot.skip(ftype)
+      else:
+        iprot.skip(ftype)
+      iprot.readFieldEnd()
+    iprot.readStructEnd()
+
+  def write(self, oprot):
+    if oprot.__class__ == TBinaryProtocol.TBinaryProtocolAccelerated and self.thrift_spec is not None and fastbinary is not None:
+      oprot.trans.write(fastbinary.encode_binary(self, (self.__class__, self.thrift_spec)))
+      return
+    oprot.writeStructBegin('FileDisownershipList')
+    if self.disownerships is not None:
+      oprot.writeFieldBegin('disownerships', TType.LIST, 1)
+      oprot.writeListBegin(TType.STRUCT, len(self.disownerships))
+      for iter31 in self.disownerships:
+        iter31.write(oprot)
+      oprot.writeListEnd()
+      oprot.writeFieldEnd()
+    if self.last_update_ts is not None:
+      oprot.writeFieldBegin('last_update_ts', TType.I64, 2)
+      oprot.writeI64(self.last_update_ts)
+      oprot.writeFieldEnd()
+    oprot.writeFieldStop()
+    oprot.writeStructEnd()
+
+  def validate(self):
+    return
+
+
+  def __repr__(self):
+    L = ['%s=%r' % (key, value)
+      for key, value in self.__dict__.iteritems()]
+    return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+  def __eq__(self, other):
+    return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+  def __ne__(self, other):
+    return not (self == other)
+
 class WatchFileEntry(object):
   """
   Attributes:
@@ -740,11 +909,11 @@ class WatchList(object):
       if fid == 1:
         if ftype == TType.LIST:
           self.watches = []
-          (_etype28, _size25) = iprot.readListBegin()
-          for _i29 in xrange(_size25):
-            _elem30 = WatchFileEntry()
-            _elem30.read(iprot)
-            self.watches.append(_elem30)
+          (_etype35, _size32) = iprot.readListBegin()
+          for _i36 in xrange(_size32):
+            _elem37 = WatchFileEntry()
+            _elem37.read(iprot)
+            self.watches.append(_elem37)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -766,8 +935,8 @@ class WatchList(object):
     if self.watches is not None:
       oprot.writeFieldBegin('watches', TType.LIST, 1)
       oprot.writeListBegin(TType.STRUCT, len(self.watches))
-      for iter31 in self.watches:
-        iter31.write(oprot)
+      for iter38 in self.watches:
+        iter38.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.last_update_ts is not None:
@@ -864,10 +1033,10 @@ class KnownError(object):
       elif fid == 6:
         if ftype == TType.LIST:
           self.email_recipients = []
-          (_etype35, _size32) = iprot.readListBegin()
-          for _i36 in xrange(_size32):
-            _elem37 = iprot.readString();
-            self.email_recipients.append(_elem37)
+          (_etype42, _size39) = iprot.readListBegin()
+          for _i43 in xrange(_size39):
+            _elem44 = iprot.readString();
+            self.email_recipients.append(_elem44)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -914,8 +1083,8 @@ class KnownError(object):
     if self.email_recipients is not None:
       oprot.writeFieldBegin('email_recipients', TType.LIST, 6)
       oprot.writeListBegin(TType.STRING, len(self.email_recipients))
-      for iter38 in self.email_recipients:
-        oprot.writeString(iter38)
+      for iter45 in self.email_recipients:
+        oprot.writeString(iter45)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.email_header is not None:
@@ -977,11 +1146,11 @@ class KnownErrorList(object):
       if fid == 1:
         if ftype == TType.LIST:
           self.identifiers = []
-          (_etype42, _size39) = iprot.readListBegin()
-          for _i43 in xrange(_size39):
-            _elem44 = KnownError()
-            _elem44.read(iprot)
-            self.identifiers.append(_elem44)
+          (_etype49, _size46) = iprot.readListBegin()
+          for _i50 in xrange(_size46):
+            _elem51 = KnownError()
+            _elem51.read(iprot)
+            self.identifiers.append(_elem51)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -1003,8 +1172,8 @@ class KnownErrorList(object):
     if self.identifiers is not None:
       oprot.writeFieldBegin('identifiers', TType.LIST, 1)
       oprot.writeListBegin(TType.STRUCT, len(self.identifiers))
-      for iter45 in self.identifiers:
-        iter45.write(oprot)
+      for iter52 in self.identifiers:
+        iter52.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.last_update_ts is not None:
@@ -1146,11 +1315,11 @@ class CodeIdentifierList(object):
       if fid == 1:
         if ftype == TType.LIST:
           self.identifiers = []
-          (_etype49, _size46) = iprot.readListBegin()
-          for _i50 in xrange(_size46):
-            _elem51 = CodeIdentifier()
-            _elem51.read(iprot)
-            self.identifiers.append(_elem51)
+          (_etype56, _size53) = iprot.readListBegin()
+          for _i57 in xrange(_size53):
+            _elem58 = CodeIdentifier()
+            _elem58.read(iprot)
+            self.identifiers.append(_elem58)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -1172,8 +1341,8 @@ class CodeIdentifierList(object):
     if self.identifiers is not None:
       oprot.writeFieldBegin('identifiers', TType.LIST, 1)
       oprot.writeListBegin(TType.STRUCT, len(self.identifiers))
-      for iter52 in self.identifiers:
-        iter52.write(oprot)
+      for iter59 in self.identifiers:
+        iter59.write(oprot)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.last_update_ts is not None:
@@ -1231,10 +1400,10 @@ class IgnoredExceptionList(object):
       if fid == 1:
         if ftype == TType.LIST:
           self.exceptions = []
-          (_etype56, _size53) = iprot.readListBegin()
-          for _i57 in xrange(_size53):
-            _elem58 = iprot.readString();
-            self.exceptions.append(_elem58)
+          (_etype63, _size60) = iprot.readListBegin()
+          for _i64 in xrange(_size60):
+            _elem65 = iprot.readString();
+            self.exceptions.append(_elem65)
           iprot.readListEnd()
         else:
           iprot.skip(ftype)
@@ -1256,8 +1425,8 @@ class IgnoredExceptionList(object):
     if self.exceptions is not None:
       oprot.writeFieldBegin('exceptions', TType.LIST, 1)
       oprot.writeListBegin(TType.STRING, len(self.exceptions))
-      for iter59 in self.exceptions:
-        oprot.writeString(iter59)
+      for iter66 in self.exceptions:
+        oprot.writeString(iter66)
       oprot.writeListEnd()
       oprot.writeFieldEnd()
     if self.last_update_ts is not None:
