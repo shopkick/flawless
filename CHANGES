@@ -1,3 +1,4 @@
+v0.3.3 2016-05-11 -- Add ability to disown files
 v0.3.2 2015-06-08 -- Add TLS support for SMTP
 v0.3.1 2015-02-11 -- Add support for scrubbing sensitive data & ignoring specific exceptions
 v0.3.0 2015-01-25 -- Add client-side caching & per host backoffs
