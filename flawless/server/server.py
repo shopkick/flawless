@@ -28,7 +28,7 @@ import flawless.lib.config
 from flawless.lib.storage import DiskStorage
 from flawless.server.api import Flawless
 from flawless.server.service import FlawlessThriftServiceHandler
-from flawless.server.service import FlawlessWebServiceHandler
+from flawless.server.webapp import FlawlessWebServiceHandler
 
 log = logging.getLogger(__name__)
 config = flawless.lib.config.get()
