@@ -21,6 +21,7 @@ flawless/client/client.py
 flawless/client/decorators.py
 flawless/client/middleware.py
 flawless/lib/__init__.py
+flawless/lib/utils.py
 flawless/lib/config/__init__.py
 flawless/lib/config/config.py
 flawless/lib/data_structures/__init__.py
@@ -41,6 +42,7 @@ flawless/server/manage.py
 flawless/server/server.py
 flawless/server/service.py
 flawless/server/stub.py
+flawless/server/webapp.py
 flawless/server/api/Flawless.py
 flawless/server/api/__init__.py
 flawless/server/api/constants.py
