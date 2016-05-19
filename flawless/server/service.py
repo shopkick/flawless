@@ -530,7 +530,7 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
             (
                 config.hostname,
                 urllib.urlencode(
-                    dict(filename=err_key.filename, function_name=err_key.function_name, code_fragment=err_key.text,
+                    dict(filename=err_key.filename, function_name=err_key.function_name, text=err_key.text,
                          line_number=err_key.line_number)
                 )
             )
