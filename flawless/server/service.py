@@ -239,6 +239,8 @@ class FlawlessServiceBaseClass(object):
                 b=start_bold, xb=end_bold, count=err_info.error_count, lb=linebreak))
             parts.append("{b}Last Occurred:{xb} {last_occurrence}{lb}".format(
                 b=start_bold, xb=end_bold, last_occurrence=err_info.last_occurrence, lb=linebreak))
+            parts.append("{b}Last Occurrence Logged From:{xb} {hostname}{lb}".format(
+                b=start_bold, xb=end_bold, hostname=request.hostname, lb=linebreak))
 
         if request.exception_type:
             parts.append("{b}Exception Type:{xb} {type}{lb}".format(
