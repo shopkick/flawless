@@ -35,7 +35,7 @@ def markdown_to_reST(text):
 
 setup(
   name='flawless',
-  version='0.3.7',
+  version='0.3.8',
   description='Python Error Monitoring and Reporting',
   long_description=markdown_to_reST(open("README.md").read()),
   license='MPL 2.0',
