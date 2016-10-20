@@ -13,6 +13,7 @@
 import functools
 import hashlib
 import linecache
+import logging
 import math
 import os.path
 import random
@@ -33,7 +34,7 @@ from flawless.lib.data_structures.lru_cache import LRUCache
 import flawless.server.api.ttypes as api_ttypes
 from flawless.server.api import Flawless
 
-
+log = logging.getLogger(__name__)
 config = flawless.lib.config.get()
 
 MAX_VARIABLE_REPR = 250
@@ -149,9 +150,9 @@ def _send_request(req):
             transport.open()
             client.record_error(req)
             hostport_info.decrement_backoff()
-    except TException:
+    except TException as e:
         hostport_info.increment_backoff()
-        raise
+        log.exception(e)
     finally:
         if transport and transport.isOpen():
             transport.close()
