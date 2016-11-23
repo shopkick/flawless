@@ -1,3 +1,4 @@
+v0.3.9 2016-11-23 -- Fix bugs related to dup email, unbounded log files, timestamp missing in links
 v0.3.5 2016-05-17 -- Refactoring & bug fixes
 v0.3.3 2016-05-11 -- Add ability to disown files
 v0.3.2 2015-06-08 -- Add TLS support for SMTP
