@@ -30,7 +30,7 @@ from thrift.transport import TSocket
 from thrift.protocol import TBinaryProtocol
 
 import flawless.lib.config
-from flawless.lib.data_structures.lru_cache import LRUCache
+from flawless.lib.data_structures.lru_cache import ExpiringLRUCache
 import flawless.server.api.ttypes as api_ttypes
 from flawless.server.api import Flawless
 
@@ -47,7 +47,7 @@ SCRUBBED_VARIABLES_REGEX = None
 CACHE_ERRORS_AFTER_N_OCCURRENCES = 10
 REPORT_AFTER_N_MILLIS = 10 * 60 * 1000  # 10 minutes
 LRU_CACHE_SIZE = 200
-ERROR_CACHE = LRUCache(size=LRU_CACHE_SIZE)
+ERROR_CACHE = ExpiringLRUCache(size=LRU_CACHE_SIZE)
 
 
 class HostportInfo(object):

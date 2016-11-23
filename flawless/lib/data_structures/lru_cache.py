@@ -8,22 +8,96 @@
 # Author: John Egan <jwegan@gmail.com>
 
 import collections
+import time
 
-from flawless.lib.data_structures import ProxyContainerMethodsMetaClass
+
+def _now_seconds():
+    return int(time.time())
 
 
-class LRUCache(object):
-    __metaclass__ = ProxyContainerMethodsMetaClass
-    _proxyfunc_ = lambda attr, self, *args, **kwargs: getattr(self.cache, attr)(*args, **kwargs)
-    _proxyfunc_func_set_ = set(['__getitem__', '__contains__', '__delitem__', '__len__', 'get'])
+class CacheEntry(object):
 
-    def __init__(self, size):
+    def __init__(self, value):
+        self.value = value
+        self.last_update = _now_seconds()
+        self.metadata = dict()  # Additional meta-data to store with the cache item
+
+    def set_value(self, value):
+        self.value = value
+        self.last_update = _now_seconds()
+
+
+class ExpiringLRUCache(object):
+    """ Simple LRU cache with expiration time for data stored in the cache.
+
+        size - max number of elements stored.
+        expiration_seconds - how long we persist objects in the cache.
+    """
+
+    def __init__(self, size, expiration_seconds=None):
+        """
+        Args:
+            ``size``: number of objects to to keep in cache
+            ``expiration_seconds``: expiration time for cache in seconds. If None, then no expiration.
+        """
         self.size = size
+        self.expiration_seconds = expiration_seconds
         self.cache = collections.OrderedDict()
+
+    def _mark_used(self, key):
+        # Assumes key is in the cache. Re-insertion takes advantage of OrderedDicts's ordering property to maintain LRU
+        self.cache[key] = self.cache.pop(key)
 
     def __setitem__(self, key, value):
         if key in self.cache:
-            del self.cache[key]
+            self._mark_used(key)
+            self.cache[key].set_value(value)
+            return
+
         if len(self.cache) >= self.size:
             self.cache.popitem(last=False)
-        self.cache[key] = value
+
+        self.cache[key] = CacheEntry(value)
+
+    def __getitem__(self, key):
+        entry = self.cache.get(key)
+        if not entry:
+            return None
+
+        if self.expiration_seconds and _now_seconds() >= entry.last_update + self.expiration_seconds:
+            del self.cache[key]
+            return None
+
+        self._mark_used(key)
+        return entry.value
+
+    def __contains__(self, key):
+        entry = self.cache.get(key)
+        if not entry:
+            return False
+
+        if self.expiration_seconds and _now_seconds() >= entry.last_update + self.expiration_seconds:
+            del self.cache[key]
+            return False
+
+        return True
+
+    def __delitem__(self, key):
+        del self.cache[key]
+
+    def __len__(self):
+        return len(self.cache)
+
+    def get(self, key, default=None):
+        return self[key] if key in self else default
+
+    def clear(self):
+        self.cache.clear()
+
+    def get_cache_item_metadata(self, key, prop):
+        if key in self.cache and prop in self.cache[key].metadata:
+            return self.cache[key].metadata[prop]
+
+    def set_cache_item_metadata(self, key, prop, value):
+        if key in self.cache:
+            self.cache[key].metadata[prop] = value

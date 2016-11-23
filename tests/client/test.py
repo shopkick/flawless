@@ -18,7 +18,7 @@ import unittest
 import flawless.client
 import flawless.client.client
 import flawless.client.decorators
-from flawless.lib.data_structures.lru_cache import LRUCache
+from flawless.lib.data_structures.lru_cache import ExpiringLRUCache
 from flawless.server.stub import FlawlessServiceStub
 
 
@@ -57,7 +57,7 @@ class BaseErrorsTestCase(unittest.TestCase):
         self.test_config = flawless.lib.config.get()
         self.test_config.__dict__ = dict((o.name, o.default) for o in flawless.lib.config.OPTIONS)
         flawless.client.set_hostports(["localhost:9028"])
-        flawless.client.client.ERROR_CACHE = LRUCache(size=flawless.client.client.LRU_CACHE_SIZE)
+        flawless.client.client.ERROR_CACHE = ExpiringLRUCache(size=flawless.client.client.LRU_CACHE_SIZE)
 
     def tearDown(self):
         setattr(flawless.client.client, "_get_service", self.saved_get_get_service)

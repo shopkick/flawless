@@ -8,8 +8,10 @@
 # Author: John Egan <jwegan@gmail.com>
 
 import unittest
+import sys
 
-from flawless.lib.data_structures.lru_cache import LRUCache
+import flawless.lib.data_structures.lru_cache as lru_cache
+from flawless.lib.data_structures.lru_cache import ExpiringLRUCache
 
 
 class LRUCacheTestCase(unittest.TestCase):
@@ -17,7 +19,13 @@ class LRUCacheTestCase(unittest.TestCase):
     def setUp(self):
         super(LRUCacheTestCase, self).setUp()
         self.size = 5
-        self.cache = LRUCache(size=self.size)
+        self.cache = ExpiringLRUCache(size=self.size)
+        self.saved_now = lru_cache._now_seconds
+        self.now_ts = 0
+        lru_cache._now_seconds = lambda: self.now_ts
+
+    def tearDown(self):
+        lru_cache._now_seconds = self.saved_now
 
     def test_non_existent_key(self):
         self.assertEquals(None, self.cache.get("abc"))
@@ -36,3 +44,14 @@ class LRUCacheTestCase(unittest.TestCase):
             self.cache[i] = "a"
             self.cache[0] = "a"
         self.assertEquals("a", self.cache[0])
+
+    def test_doesnt_expire_if_no_expiration(self):
+        self.cache[1] = "a"
+        self.now_ts = sys.maxint
+        self.assertEquals("a", self.cache[1])
+
+    def test_expiration(self):
+        self.cache = ExpiringLRUCache(size=self.size, expiration_seconds=1)
+        self.cache[1] = "a"
+        self.now_ts = 2
+        self.assertEquals(None, self.cache.get(1))
