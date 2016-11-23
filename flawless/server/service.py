@@ -426,7 +426,8 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
         if not key:
             if not was_whitelisted:
                 name_map = api_ttypes.LineType._VALUES_TO_NAMES
-                line_types = [(stack_line.filename, name_map.get(self._get_line_type(stack_line)))
+                line_types = [("%s:%d" % (stack_line.filename, stack_line.line_number),
+                               name_map.get(self._get_line_type(stack_line)))
                               for stack_line in request.traceback]
                 log.info("Unable to blame: %s" % str(line_types))
             return
@@ -533,7 +534,7 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
                 config.hostname,
                 urllib.urlencode(
                     dict(filename=err_key.filename, function_name=err_key.function_name, text=err_key.text,
-                         line_number=err_key.line_number)
+                         line_number=err_key.line_number, ts=self._epoch_ms())
                 )
             )
         )

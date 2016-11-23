@@ -12,6 +12,7 @@
 
 from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
 import logging
+import logging.handlers
 import os
 import os.path
 from SocketServer import ThreadingMixIn
@@ -105,7 +106,14 @@ def serve(conf_path, storage_factory=None):
         os.makedirs(config.data_dir_path)
 
     storage_factory = storage_factory or (lambda partition: DiskStorage(partition=partition))
-    logging.basicConfig(level=getattr(logging, config.log_level), filename=config.log_file, stream=sys.stderr)
+
+    # Setup root logger
+    root_logger = logging.getLogger()
+    root_handler = logging.handlers.TimedRotatingFileHandler(
+        filename=config.log_file, when='d', interval=1, backupCount=config.log_days_to_keep)
+    root_logger.setLevel(getattr(logging, config.log_level))
+    root_logger.addHandler(root_handler)
+
     child_pid = os.fork()
     if child_pid == 0:
         # Setup HTTP server
