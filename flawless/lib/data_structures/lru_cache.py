@@ -45,8 +45,10 @@ class ExpiringLRUCache(object):
         self.cache = collections.OrderedDict()
 
     def _mark_used(self, key):
-        # Assumes key is in the cache. Re-insertion takes advantage of OrderedDicts's ordering property to maintain LRU
-        self.cache[key] = self.cache.pop(key)
+        # Re-insertion takes advantage of OrderedDicts's ordering property to maintain LRU
+        entry = self.cache.pop(key)
+        if entry:
+            self.cache[key] = entry
 
     def __setitem__(self, key, value):
         if key in self.cache:

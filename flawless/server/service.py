@@ -30,6 +30,7 @@ import traceback
 import urllib
 
 import flawless.lib.config
+from flawless.lib.data_structures.lru_cache import ExpiringLRUCache
 from flawless.lib.data_structures import prefix_tree
 from flawless.lib.storage import DiskStorage
 from flawless.lib.version_control.repo import get_repository
@@ -308,6 +309,7 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
         self.number_of_git_blames_running = 0
 
         self.repository = get_repository(open_process_func=self.open_process_func)
+        self.emailed_errors_cache = ExpiringLRUCache(size=1000, expiration_seconds=60 * 5)
 
         self.lock = threading.RLock()
         self.errors_seen = None
@@ -534,7 +536,7 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
                 config.hostname,
                 urllib.urlencode(
                     dict(filename=err_key.filename, function_name=err_key.function_name, text=err_key.text,
-                         line_number=err_key.line_number, ts=self._epoch_ms())
+                         line_number=err_key.line_number, timestamp=self._epoch_ms())
                 )
             )
         )
@@ -549,6 +551,10 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
             )
         )
         email_body.append("<br /><a href='https://github.com/shopkick/flawless'>What is Flawless?</a>")
+
+        if err_key in self.emailed_errors_cache:
+            return  # Skip sending this email if we've already emailed it in the past 5 minutes
+        self.emailed_errors_cache[err_key] = True
 
         # Send the email
         log.info("Sending email for %s to %s" % (str(err_key), ", ".join(email_recipients)))
