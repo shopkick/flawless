@@ -536,7 +536,7 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
                 config.hostname,
                 urllib.urlencode(
                     dict(filename=err_key.filename, function_name=err_key.function_name, text=err_key.text,
-                         line_number=err_key.line_number, timestamp=self._epoch_ms())
+                         line_number=err_key.line_number, timestamp=self._epoch_ms() / 1000)
                 )
             )
         )
