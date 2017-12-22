@@ -35,7 +35,7 @@ def markdown_to_reST(text):
 
 setup(
   name='flawless',
-  version='0.3.10',
+  version='0.4.0',
   description='Python Error Monitoring and Reporting',
   long_description=markdown_to_reST(open("README.md").read()),
   license='MPL 2.0',
@@ -51,15 +51,18 @@ setup(
   flawless = flawless.server.manage:main
   """,
   classifiers=[
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 5 - Production/Stable",
     "Framework :: Pylons",
     "Framework :: Django",
     "Framework :: Pyramid",
     "Framework :: Paste",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+    "Programming Language :: Python :: 2",
+    "Programming Language :: Python :: 2.7",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.6",
     "Topic :: Software Development :: Bug Tracking",
     "Topic :: Software Development :: Quality Assurance",
   ],
 )
-

@@ -1,6 +1,6 @@
 Metadata-Version: 1.1
 Name: flawless
-Version: 0.3.10
+Version: 0.4.0
 Summary: Python Error Monitoring and Reporting
 Home-page: http://github.com/shopkick/flawless
 Author: John Egan
@@ -207,12 +207,16 @@ Description: Flawless
         
         
 Platform: UNKNOWN
-Classifier: Development Status :: 3 - Alpha
+Classifier: Development Status :: 5 - Production/Stable
 Classifier: Framework :: Pylons
 Classifier: Framework :: Django
 Classifier: Framework :: Pyramid
 Classifier: Framework :: Paste
 Classifier: Intended Audience :: Developers
 Classifier: License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)
+Classifier: Programming Language :: Python :: 2
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.6
 Classifier: Topic :: Software Development :: Bug Tracking
 Classifier: Topic :: Software Development :: Quality Assurance

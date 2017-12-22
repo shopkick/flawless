@@ -39,10 +39,10 @@ def get_context(pid_file_path, error_log):
 def main(argv):
     # Process argv
     if len(argv) <= 1:
-        print "\nUsage: python flawless_daemon.py FLAWLESS_CONFIG_PATH PID_FILE_PATH RUN_DIR"
-        print "    FLAWLESS_CONFIG_PATH - The path to the flawless.cfg config you want to use"
-        print "    PID_FILE_PATH - The path you want to for the PID lock file"
-        print "    RUN_DIR - Directory to output run data"
+        print("\nUsage: python flawless_daemon.py FLAWLESS_CONFIG_PATH PID_FILE_PATH RUN_DIR")
+        print("    FLAWLESS_CONFIG_PATH - The path to the flawless.cfg config you want to use")
+        print("    PID_FILE_PATH - The path you want to for the PID lock file")
+        print("    RUN_DIR - Directory to output run data")
         return
     flawless_cfg_path = os.path.abspath(argv[1])
     pid_file_path = os.path.abspath(argv[2])
