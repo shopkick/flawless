@@ -15,54 +15,59 @@ import os.path
 import re
 from setuptools import setup, find_packages
 
+
 def markdown_to_reST(text):
-  '''This is not a general purpose converter. Only converts this readme'''
-  # Convert parameters to italics and prepend a newline
-  text = re.sub(pattern=r"\n       (\w+) - (.+)\n",
-                repl=r"\n\n       *\g<1>* - \g<2>\n",
-                string=text)
+    '''This is not a general purpose converter. Only converts this readme'''
+    # Convert parameters to italics and prepend a newline
+    text = re.sub(pattern=r"\n       (\w+) - (.+)\n",
+                  repl=r"\n\n       *\g<1>* - \g<2>\n",
+                  string=text)
 
-  # Parse [http://url](text), and just leave the url
-  text = re.sub(pattern=r"\[([^\]]+)\]\([^)]+\)",
-                repl=r"\g<1>",
-                string=text)
+    # Parse [http://url](text), and just leave the url
+    text = re.sub(pattern=r"\[([^\]]+)\]\([^)]+\)",
+                  repl=r"\g<1>",
+                  string=text)
 
-  # Disable formatting of numbered lists
-  text = re.sub(pattern=r"\n(\d+). ",
-                repl=r"\n\\\g<1>. ",
-                string=text)
-  return text
+    # Disable formatting of numbered lists
+    text = re.sub(pattern=r"\n(\d+). ",
+                  repl=r"\n\\\g<1>. ",
+                  string=text)
+    return text
 
 setup(
-  name='flawless',
-  version='0.4.0',
-  description='Python Error Monitoring and Reporting',
-  long_description=markdown_to_reST(open("README.md").read()),
-  license='MPL 2.0',
-  author='John Egan',
-  author_email='jwegan@gmail.com',
-  url='http://github.com/shopkick/flawless',
-  zip_safe=False,
-  packages=find_packages(exclude=['ez_setup', 'examples', 'packages', 'tests*']),
-  data_files=[('config', [os.path.join('config', f) for f in os.listdir('config')
-                          if not f.startswith('.')])],
-  entry_points="""
-  [console_scripts]
-  flawless = flawless.server.manage:main
-  """,
-  classifiers=[
-    "Development Status :: 5 - Production/Stable",
-    "Framework :: Pylons",
-    "Framework :: Django",
-    "Framework :: Pyramid",
-    "Framework :: Paste",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
-    "Programming Language :: Python :: 2",
-    "Programming Language :: Python :: 2.7",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.6",
-    "Topic :: Software Development :: Bug Tracking",
-    "Topic :: Software Development :: Quality Assurance",
-  ],
+    name='flawless',
+    version='0.4.0',
+    description='Python Error Monitoring and Reporting',
+    long_description=markdown_to_reST(open("README.md").read()),
+    license='MPL 2.0',
+    author='John Egan',
+    author_email='jwegan@gmail.com',
+    url='http://github.com/shopkick/flawless',
+    zip_safe=False,
+    packages=find_packages(exclude=['ez_setup', 'examples', 'packages', 'tests*']),
+    data_files=[('config', [os.path.join('config', f) for f in os.listdir('config')
+                            if not f.startswith('.')])],
+    entry_points="""
+    [console_scripts]
+    flawless = flawless.server.manage:main
+    """,
+    classifiers=[
+        "Development Status :: 5 - Production/Stable",
+        "Framework :: Pylons",
+        "Framework :: Django",
+        "Framework :: Pyramid",
+        "Framework :: Paste",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.6",
+        "Topic :: Software Development :: Bug Tracking",
+        "Topic :: Software Development :: Quality Assurance",
+    ],
+    install_requires=[
+        'future',
+        'thrift>=0.10.0',
+    ],
 )
