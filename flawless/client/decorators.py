@@ -14,6 +14,7 @@ import functools
 import inspect
 
 import flawless.client.client
+from flawless.lib.utils import im_func, im_self
 
 
 def wrap_function(func=None, error_threshold=None, reraise_exception=True, save_current_stack_trace=True):
@@ -44,13 +45,14 @@ def wrap_class(cls, error_threshold=None):
     ''' Wraps a class with reporting to errors backend by decorating each function of the class.
             Decorators are injected under the classmethod decorator if they exist.
     '''
-    for method_name, method in inspect.getmembers(cls, inspect.ismethod):
+    methods = inspect.getmembers(cls, inspect.ismethod) + inspect.getmembers(cls, inspect.isfunction)
+    for method_name, method in methods:
         wrapped_method = flawless.client.client._wrap_function_with_error_decorator(
-            method if not method.im_self else method.im_func,
+            method if not im_self(method) else im_func(method),
             save_current_stack_trace=False,
             error_threshold=error_threshold,
         )
-        if method.im_self:
+        if im_self(method):
             wrapped_method = classmethod(wrapped_method)
         setattr(cls, method_name, wrapped_method)
     return cls

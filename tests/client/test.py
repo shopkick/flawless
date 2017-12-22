@@ -11,6 +11,7 @@
 # Author: John Egan <jwegan@gmail.com>
 
 import copy
+import sys
 import time
 import unittest
 
@@ -70,27 +71,27 @@ class ClassDecoratorTestCase(BaseErrorsTestCase):
         self.handler = ThriftTestHandler()
 
     def test_returns_correct_result(self):
-        self.assertEquals(56, self.handler.method(result=56))
+        self.assertEqual(56, self.handler.method(result=56))
 
     def test_returns_correct_result_for_classmethod(self):
-        self.assertEquals(91, ThriftTestHandler.classmeth(result=91))
+        self.assertEqual(91, ThriftTestHandler.classmeth(result=91))
 
     def test_should_call_flawless_backend_on_exception(self):
         self.assertRaises(Exception, self.handler.method, fail=True)
-        self.assertEquals(1, len(self.client_stub.record_error.args_list))
+        self.assertEqual(1, len(self.client_stub.record_error.args_list))
         errorFound = False
         req_obj = self.client_stub.record_error.last_args['request']
         for row in req_obj.traceback:
             if row.function_name == "_simulate_call":
                 errorFound = True
             if row.function_name == "method":
-                self.assertEquals('98', row.frame_locals['self.instancevar'])
+                self.assertEqual('98', row.frame_locals['self.instancevar'])
         self.assertTrue(errorFound)
         self.assertEqual(None, req_obj.error_threshold)
 
     def test_logs_classvars(self):
         self.assertRaises(Exception, self.handler.method, fail=True)
-        self.assertEquals(1, len(self.client_stub.record_error.args_list))
+        self.assertEqual(1, len(self.client_stub.record_error.args_list))
         errorFound = False
         req_obj = self.client_stub.record_error.last_args['request']
         for row in req_obj.traceback:
@@ -126,7 +127,7 @@ class FunctionDecoratorTestCase(BaseErrorsTestCase):
         return retval
 
     def test_returns_correct_result(self):
-        self.assertEquals(7, self.example_func(fail=False, retval=7))
+        self.assertEqual(7, self.example_func(fail=False, retval=7))
 
     def test_should_call_flawless_backend_on_exception(self):
         self.assertRaises(Exception, self.example_func, fail=True)
@@ -137,7 +138,8 @@ class FunctionDecoratorTestCase(BaseErrorsTestCase):
                 errorFound = True
         self.assertTrue(errorFound)
         self.assertEqual(None, req_obj.error_threshold)
-        self.assertEqual('exceptions.Exception', req_obj.exception_type)
+        expected_type = 'builtins.Exception' if sys.version_info[0] > 2 else 'exceptions.Exception'
+        self.assertEqual(expected_type, req_obj.exception_type)
 
     def test_does_not_call_flawless_if_backoff(self):
         flawless.client.client.HOSTPORT_INFO[0].backoff_ms = int(time.time() * 1000) + 1000
@@ -148,9 +150,9 @@ class FunctionDecoratorTestCase(BaseErrorsTestCase):
     def test_does_not_call_flawless_if_error_is_being_cached(self):
         for i in range(flawless.client.client.CACHE_ERRORS_AFTER_N_OCCURRENCES * 2):
             self.assertRaises(Exception, self.example_func, fail=True)
-        self.assertEquals(len(self.client_stub.record_error.args_list),
-                          flawless.client.client.CACHE_ERRORS_AFTER_N_OCCURRENCES + 1)
-        self.assertEquals(self.client_stub.record_error.last_args['request'].error_count, 6)
+        self.assertEqual(len(self.client_stub.record_error.args_list),
+                         flawless.client.client.CACHE_ERRORS_AFTER_N_OCCURRENCES + 1)
+        self.assertEqual(self.client_stub.record_error.last_args['request'].error_count, 6)
 
     def test_decorator_with_kwargs(self):
         self.second_example_func(fail=True)
@@ -169,7 +171,7 @@ class FunctionDecoratorTestCase(BaseErrorsTestCase):
         for row in req_obj.traceback:
             if row.function_name == "example_func":
                 errorFound = True
-                self.assertEquals('7', row.frame_locals['myvar'])
+                self.assertEqual('7', row.frame_locals['myvar'])
         self.assertTrue(errorFound)
         self.assertEqual(None, req_obj.error_threshold)
 
@@ -181,7 +183,7 @@ class FunctionDecoratorTestCase(BaseErrorsTestCase):
         for row in req_obj.traceback:
             if row.function_name == "scrubber_example_func":
                 errorFound = True
-                self.assertEquals('**scrubbed**', row.frame_locals['password'])
+                self.assertEqual('**scrubbed**', row.frame_locals['password'])
         self.assertTrue(errorFound)
         self.assertEqual(None, req_obj.error_threshold)
 

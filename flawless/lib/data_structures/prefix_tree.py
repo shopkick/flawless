@@ -12,12 +12,13 @@
 
 import os
 
+from future.utils import with_metaclass
+
 from flawless.lib.data_structures import ProxyContainerMethodsMetaClass
 
 
-class PrefixTree(object):
-    __metaclass__ = ProxyContainerMethodsMetaClass
-    _proxyfunc_ = lambda attr, self, *args, **kwargs: getattr(self.root, attr)(*args, **kwargs)
+class PrefixTree(with_metaclass(ProxyContainerMethodsMetaClass, object)):
+    _proxyfunc_ = lambda self, attr, *args, **kwargs: getattr(self.root, attr)(*args, **kwargs)
 
     def __init__(self, split_key_func, join_key_func, accumulator_func=None,
                  accumulator_intializer=None):

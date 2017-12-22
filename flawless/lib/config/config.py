@@ -11,7 +11,10 @@
 # Author: John Egan <jwegan@gmail.com>
 
 import collections
-import ConfigParser
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
 import os.path
 
 FlawlessOption = collections.namedtuple("FlawlessOption", ["name", "default", "type", "description"])
@@ -106,7 +109,7 @@ def get():
 
 def init_config(filepath):
     setattr(RUNTIME_CONFIG, "config_dir_path", os.path.dirname(filepath))
-    parser = ConfigParser.SafeConfigParser()
+    parser = configparser.SafeConfigParser()
     parser.read(filepath)
     for option in OPTIONS:
         if parser.has_option("flawless", option.name):

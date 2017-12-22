@@ -13,8 +13,10 @@
 import abc
 import copy
 
+from future.utils import with_metaclass
 
-class StorageInterface(object):
+
+class StorageInterface(with_metaclass(abc.ABCMeta, object)):
     """By default Flawless stores everything on disk which means there can only be one centralized instance of
     Flawless. You can implement your own instance of StorageInterface that connects to a backend database and pass
     it into flawless.server.server.serve. Then it is possible to have the flawless server be horizontally scalable
@@ -23,8 +25,6 @@ class StorageInterface(object):
     It is worth noting is that the keys used in this interface are either python primitives (string, list, etc) or
     thrift objects. The values can also be python primitives (list, dictionary, etc) or thrift objects
     """
-
-    __metaclass__ = abc.ABCMeta
 
     def __init__(self, partition):
         """partition is a string used to partition keys by week. For instance, with disk storage, we create a new
@@ -53,7 +53,7 @@ class StorageInterface(object):
         obj_key_set = set(obj.__dict__.keys())
         thrift_field_map = {t[2]: t[4] for t in obj.thrift_spec if t}
         obj.__dict__.update({f: copy.copy(thrift_field_map[f]) for f in set(thrift_field_map.keys()) - obj_key_set})
-        for value in obj.__dict__.itervalues():
+        for value in obj.__dict__.values():
             self.migrate_thrift_obj(value)
 
     @abc.abstractmethod

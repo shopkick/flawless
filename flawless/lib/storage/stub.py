@@ -10,6 +10,8 @@
 # ---
 # Author: John Egan <jwegan@gmail.com>
 
+from future.utils import iteritems
+
 from flawless.lib.storage import StorageInterface
 
 
@@ -20,7 +22,7 @@ class StubStorage(StorageInterface):
         self.dict = dict()
 
     def iteritems(self):
-        return self.dict.iteritems()
+        return iteritems(self.dict)
 
     def __setitem__(self, key, item):
         self.dict[key] = item

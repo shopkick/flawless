@@ -14,9 +14,13 @@ from __future__ import absolute_import
 import __main__
 
 import cgi
-import email
+try:
+    from email.mime.text import MIMEText
+except ImportError:
+    from email.MIMEText import MIMEText
 import collections
 import datetime
+from functools import reduce
 import logging
 import os
 import os.path
@@ -28,6 +32,14 @@ import threading
 import time
 import traceback
 import urllib
+try:
+    import urllib.parse
+    urlencode = urllib.parse.urlencode
+except ImportError:
+    import urllib
+    urlencode = urllib.urlencode
+
+from future.utils import iteritems
 
 import flawless.lib.config
 from flawless.lib.data_structures.lru_cache import ExpiringLRUCache
@@ -67,7 +79,7 @@ def code_identifier_equality(self, other):
 
 api_ttypes.CodeIdentifier.__eq__ = code_identifier_equality
 api_ttypes.KnownError.__eq__ = code_identifier_equality
-api_ttypes.ErrorKey.__hash__ = lambda self: reduce(lambda x, y: x ^ hash(y), self.__dict__.iteritems(), 1)
+api_ttypes.ErrorKey.__hash__ = lambda self: reduce(lambda x, y: x ^ hash(y), iteritems(self.__dict__), 1)
 
 
 ############################## BASE SERVICE CLASS ##############################
@@ -81,7 +93,7 @@ class FlawlessServiceBaseClass(object):
                  open_process_func=subprocess.Popen,
                  smtp_client_cls=smtplib.SMTP,
                  time_func=time.time):
-        self.__dict__.update({k: v for k, v in locals().iteritems() if k != 'self'})
+        self.__dict__.update({k: v for k, v in iteritems(locals()) if k != 'self'})
         self.extract_base_path_patterns = [re.compile('^.*/%s/?(.*)$' % d) for d in
                                            config.report_runtime_package_directory_names]
         self.raise_exception_pattern = re.compile('^\s*raise[ \n]')
@@ -259,6 +271,11 @@ class FlawlessServiceBaseClass(object):
         parts.extend(formatted_stack)
         parts.append(escape_func(request.exception_message))
 
+        def decode(value):
+            if hasattr(value, 'decode'):
+                return value.decode('UTF-8', 'replace')
+            return value
+
         # Frame Locals
         parts.append(linebreak * 2 + "{b}Stack Frame:{xb}".format(b=start_bold, xb=end_bold))
         types_to_show = [api_ttypes.LineType.KNOWN_ERROR,
@@ -272,7 +289,7 @@ class FlawlessServiceBaseClass(object):
                 b=start_bold, xb=end_bold,
             )
             local_vals = ['{sp}{sp}{sp}{sp}{name}={value}'.format(
-                          sp=spacer, name=name, value=escape_func(value.decode("UTF-8", "replace")))
+                          sp=spacer, name=name, value=escape_func(decode(value)))
                           for name, value in sorted(l.frame_locals.items())]
             parts.append(line_info)
             parts.extend(local_vals or [spacer * 4 + "No variables in this frame"])
@@ -281,7 +298,7 @@ class FlawlessServiceBaseClass(object):
         if request.additional_info:
             parts.append(linebreak * 2 + "{b}Additional Information:{xb}".format(b=start_bold, xb=end_bold))
             parts.append(
-                escape_func(request.additional_info.decode("UTF-8", "replace")).replace("\n", linebreak)
+                escape_func(decode(request.additional_info)).replace("\n", linebreak)
             )
 
         return linebreak.join(parts)
@@ -367,7 +384,7 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
                 log_func=log.warning,
             )
 
-        msg = email.MIMEText.MIMEText(body.encode("UTF-8"), "html", "UTF-8")
+        msg = MIMEText(body.encode("UTF-8"), "html", "UTF-8")
         msg["From"] = config.smtp_from or "flawless@%s" % config.email_domain_name
         msg["To"] = ", ".join(to_addresses)
         msg["Subject"] = subject
@@ -534,7 +551,7 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
             "<br /><br /><a href='%s/view_traceback?%s'>View most recent occurrence</a>" %
             (
                 config.hostname,
-                urllib.urlencode(
+                urlencode(
                     dict(filename=err_key.filename, function_name=err_key.function_name, text=err_key.text,
                          line_number=err_key.line_number, timestamp=self._epoch_ms() / 1000)
                 )
@@ -545,7 +562,7 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
             "<br /><a href='%s/add_known_error?%s'>Add to whitelist</a>" %
             (
                 config.hostname,
-                urllib.urlencode(
+                urlencode(
                     dict(filename=err_key.filename, function_name=err_key.function_name, code_fragment=err_key.text)
                 )
             )

@@ -17,6 +17,8 @@ import os.path
 import re
 import subprocess
 
+from future.utils import with_metaclass
+
 import flawless.lib.config
 
 
@@ -29,8 +31,7 @@ def get_repository(open_process_func=subprocess.Popen):
         return GitRepository(open_process_func=open_process_func)
 
 
-class Repository(object):
-    __metaclass__ = abc.ABCMeta
+class Repository(with_metaclass(abc.ABCMeta, object)):
 
     def __init__(self, local_path=None, remote_url=None, branch_pattern=None,
                  open_process_func=subprocess.Popen):
@@ -109,7 +110,7 @@ class GitRepository(Repository):
             return
 
         if self.branch_pattern:
-            branch_names = self._run_git_command(["fetch"], log_output=log_output)
+            self._run_git_command(["fetch"], log_output=log_output)
             all_branches = self._run_git_command(["branch", "-r"], log_output=log_output).split("\n")
             all_branches = [s.strip() for s in all_branches if "->" not in s and s.strip()]
             all_branches = sorted(all_branches, key=self.natural_sort_func)

@@ -28,30 +28,30 @@ class LRUCacheTestCase(unittest.TestCase):
         lru_cache._now_seconds = self.saved_now
 
     def test_non_existent_key(self):
-        self.assertEquals(None, self.cache.get("abc"))
+        self.assertEqual(None, self.cache.get("abc"))
 
     def test_purges_least_recently_used(self):
         for i in range(self.size + 1):
             self.cache[i] = "a"
-        self.assertEquals(None, self.cache.get(0))
+        self.assertEqual(None, self.cache.get(0))
 
     def test_get_key(self):
         self.cache[1] = "a"
-        self.assertEquals("a", self.cache[1])
+        self.assertEqual("a", self.cache[1])
 
     def test_bumps_recently_used(self):
         for i in range(2 * self.size):
             self.cache[i] = "a"
             self.cache[0] = "a"
-        self.assertEquals("a", self.cache[0])
+        self.assertEqual("a", self.cache[0])
 
     def test_doesnt_expire_if_no_expiration(self):
         self.cache[1] = "a"
-        self.now_ts = sys.maxint
-        self.assertEquals("a", self.cache[1])
+        self.now_ts = sys.maxsize
+        self.assertEqual("a", self.cache[1])
 
     def test_expiration(self):
         self.cache = ExpiringLRUCache(size=self.size, expiration_seconds=1)
         self.cache[1] = "a"
         self.now_ts = 2
-        self.assertEquals(None, self.cache.get(1))
+        self.assertEqual(None, self.cache.get(1))

@@ -11,8 +11,12 @@
 # Author: John Egan <jwegan@gmail.com>
 
 from __future__ import absolute_import
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
+from future.utils import iteritems
 import redis  # Tested with redis==2.4.10
 
 import flawless.lib.config
@@ -44,7 +48,7 @@ class RedisStorage(StorageInterface):
                 yield (key, value)
             return
         else:
-            for key, value in self.client.hgetall(name).iteritems():
+            for key, value in iteritems(self.client.hgetall(name)):
                 yield (key, value)
             return
 

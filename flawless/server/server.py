@@ -10,15 +10,24 @@
 # ---
 # Author: John Egan <jwegan@gmail.com>
 
-from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+try:
+    from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+except ImportError:
+    from http.server import HTTPServer, BaseHTTPRequestHandler
 import logging
 import logging.handlers
 import os
 import os.path
-from SocketServer import ThreadingMixIn
+try:
+    from SocketServer import ThreadingMixIn
+except ImportError:
+    from socketserver import ThreadingMixIn
 import signal
 import sys
-import urlparse
+try:
+    import urlparse
+except ImportError:
+    import urllib.parse as urlparse
 
 from thrift.protocol import TBinaryProtocol
 from thrift.server import TServer

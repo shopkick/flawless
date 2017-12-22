@@ -12,18 +12,21 @@
 
 import os
 import os.path
-import cPickle as pickle
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 import shutil
 import threading
+
+from future.utils import with_metaclass
 
 from flawless.lib.data_structures import ProxyContainerMethodsMetaClass
 
 
-class PersistentDictionary(object):
+class PersistentDictionary(with_metaclass(ProxyContainerMethodsMetaClass, object)):
     ''' Provides a persistent thread-safe dictionary that is backed by a file on disk '''
-    __metaclass__ = ProxyContainerMethodsMetaClass
-
-    def _proxyfunc_(attr, self, *args, **kwargs):
+    def _proxyfunc_(self, attr, *args, **kwargs):
         with self.lock:
             return getattr(self.dict, attr)(*args, **kwargs)
 

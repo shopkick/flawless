@@ -19,21 +19,21 @@ import flawless.server.configure_server
 
 def show_options():
     for option in flawless.lib.config.OPTIONS:
-        print option.name
-        print "    default value: %s" % repr(option.default)
-        print "    type: %s" % str(option.type)
-        print "    description: %s\n" % option.description
+        print(option.name)
+        print("    default value: %s" % repr(option.default))
+        print("    type: %s" % str(option.type))
+        print("    description: %s\n" % option.description)
 
 
 def usage():
-    print "Usage: flawless [start|configure|options|help] [-conf path]"
-    print "    Commands:"
-    print "        start - Start the server"
-    print "        configure - Run server setup script"
-    print "        options - Display list of server configuration options for flawless.cfg"
-    print "        help - Display this description"
-    print "    Options:"
-    print "        -conf path: Path to flawless.cfg"
+    print("Usage: flawless [start|configure|options|help] [-conf path]")
+    print("    Commands:")
+    print("        start - Start the server")
+    print("        configure - Run server setup script")
+    print("        options - Display list of server configuration options for flawless.cfg")
+    print("        help - Display this description")
+    print("    Options:")
+    print("        -conf path: Path to flawless.cfg")
 
 
 def main():

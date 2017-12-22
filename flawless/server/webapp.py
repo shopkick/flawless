@@ -18,10 +18,17 @@ import copy
 import collections
 import inspect
 import logging
-import urllib
-import urlparse
+
+try:
+    import urlparse
+    import urllib
+    urlencode = urllib.urlencode
+except ImportError:
+    import urllib.parse as urlparse
+    urlencode = urlparse.urlencode
 
 
+from future.utils import iteritems
 from thrift.Thrift import TType
 
 import flawless.lib.config
@@ -99,7 +106,7 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
 
         grouped_errors = collections.defaultdict(list)
         developer_score = collections.defaultdict(int)
-        for key, value in errors_seen.iteritems():
+        for key, value in iteritems(errors_seen):
             if ((not value.is_known_error or include_known_errors) and
                     (value.date >= config.report_only_after_minimum_date or include_modified_before_min_date)):
                 grouped_errors[value.developer_email].append((key, value))
@@ -118,7 +125,7 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
                 params = copy.copy(err_key.__dict__)
                 if timestamp:
                     params["timestamp"] = timestamp
-                view_url = "%s/view_traceback?%s" % (config.hostname, urllib.urlencode(params))
+                view_url = "%s/view_traceback?%s" % (config.hostname, urlencode(params))
                 html_parts.append("<a href='%s'>view traceback</a>" % view_url)
                 html_parts.append("<br />")
             html_parts.append("<br />")

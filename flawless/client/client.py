@@ -24,6 +24,7 @@ import time
 import traceback
 import warnings
 
+from future.utils import raise_
 from thrift.Thrift import TException
 from thrift.transport import TTransport
 from thrift.transport import TSocket
@@ -83,8 +84,8 @@ class CachedErrorInfo(object):
     def get_hash_key(cls, stack_lines):
         m = hashlib.md5()
         for line in stack_lines:
-            m.update(line.filename)
-            m.update(str(line.line_number))
+            m.update(line.filename.encode('utf8'))
+            m.update(str(line.line_number).encode('utf8'))
         return m.digest()
 
     def increment(self):
@@ -195,10 +196,10 @@ def record_error(hostname, exc_info, preceding_stack=None, error_threshold=None,
             # Include some limits on max string length & number of variables to keep things from getting
             # out of hand
             frame_locals = dict((k, _myrepr(k, v)) for k, v in
-                                tb.tb_frame.f_locals.items()[:MAX_LOCALS] if k != "self")
+                                list(tb.tb_frame.f_locals.items())[:MAX_LOCALS] if k != "self")
             if "self" in tb.tb_frame.f_locals and hasattr(tb.tb_frame.f_locals["self"], "__dict__"):
                 frame_locals.update(dict(("self." + k, _myrepr(k, v)) for k, v in
-                                         tb.tb_frame.f_locals["self"].__dict__.items()[:MAX_LOCALS]
+                                         list(tb.tb_frame.f_locals["self"].__dict__.items())[:MAX_LOCALS]
                                          if k != "self"))
 
         stack_lines.append(
@@ -252,7 +253,7 @@ def _wrap_function_with_error_decorator(func,
             # Check to try and prevent multiple reports of the same exception
             if hasattr(value, "_flawless_already_caught"):
                 if reraise_exception:
-                    raise value, None, sys_traceback
+                    raise_(value, None, sys_traceback)
                 else:
                     return
 
@@ -268,5 +269,5 @@ def _wrap_function_with_error_decorator(func,
             # Reraise exception if so desired
             if reraise_exception:
                 setattr(value, "_flawless_already_caught", True)
-                raise value, None, sys_traceback
+                raise_(value, None, sys_traceback)
     return wrapped_func_with_error_reporting

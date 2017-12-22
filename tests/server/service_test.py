@@ -15,7 +15,10 @@ import datetime
 import email
 import time
 import unittest
-import StringIO
+try:
+    from StringIO import StringIO
+except ImportError:
+    from io import StringIO
 
 from flawless.lib.storage.stub import StubStorage
 import flawless.lib.config
@@ -29,7 +32,7 @@ class BaseTestCase(unittest.TestCase):
     def setUp(self):
         super(BaseTestCase, self).setUp()
         self.popen_stub = POpenStub()
-        self.popen_stub.stdout = StringIO.StringIO(
+        self.popen_stub.stdout = StringIO(
             "75563df6e9d1efe44b48f6643fde9ebbd822b0c5 25 25 1\n"
             "author John Egan\n"
             "author-mail <wishbone@shopkick.com>\n"
@@ -169,13 +172,13 @@ class BaseTestCase(unittest.TestCase):
                                      (key, str(expected[key]), str(actual[key])))
 
     def assertEmailEquals(self, expected, actual):
-        self.assertEquals(expected["from_address"], actual["from_address"])
-        self.assertEquals(set(expected["to_addresses"]), set(actual["to_addresses"]))
+        self.assertEqual(expected["from_address"], actual["from_address"])
+        self.assertEqual(set(expected["to_addresses"]), set(actual["to_addresses"]))
         parsed_email = email.message_from_string(actual["body"])
-        self.assertEquals(expected["from_address"], parsed_email["From"])
-        self.assertEquals(set(expected["to_addresses"]), set(parsed_email["To"].split(", ")))
-        self.assertEquals(expected["subject"], parsed_email["Subject"])
-        self.assertTrue(expected["body"] in parsed_email.get_payload(decode=True))
+        self.assertEqual(expected["from_address"], parsed_email["From"])
+        self.assertEqual(set(expected["to_addresses"]), set(parsed_email["To"].split(", ")))
+        self.assertEqual(expected["subject"], parsed_email["Subject"])
+        self.assertTrue(expected["body"] in parsed_email.get_payload(decode=True).decode('utf8'))
 
 
 class RecordErrorTestCase(BaseTestCase):
@@ -263,7 +266,7 @@ class RecordErrorTestCase(BaseTestCase):
                 1, "wishbone@shopkick.com", "2017-07-30 00:00:00", False, "2020-01-01 00:00:00",
                 is_known_error=False, last_error_data=req)},
             self.handler.errors_seen.dict)
-        self.assertEquals(None, self.smtp_stub.last_args)
+        self.assertEqual(None, self.smtp_stub.last_args)
 
     def test_uses_threshold_specified_in_request(self):
         self.test_config.report_error_threshold = 2
@@ -370,7 +373,7 @@ class RecordErrorTestCase(BaseTestCase):
                                     body='NOTE: This error typically does not require dev team involvement.',
                                     smtp_server_host_port=None),
                                self.smtp_stub.last_args)
-        body = email.message_from_string(self.smtp_stub.last_args["body"]).get_payload(decode=True)
+        body = email.message_from_string(self.smtp_stub.last_args["body"]).get_payload(decode=True).decode('utf8')
         self.assertTrue("email text" in body)
         self.assertTrue("extra stuff" in body)
 
@@ -407,7 +410,7 @@ class RecordErrorTestCase(BaseTestCase):
             exception_message="email text",
             hostname="localhost",
         )
-        self.popen_stub.stdout = StringIO.StringIO(
+        self.popen_stub.stdout = StringIO(
             "75563df6e9d1efe44b48f6643fde9ebbd822b0c5 25 25 1\n"
             "author John Egan\n"
             "author-mail <wishbone@shopkick.com>\n"
@@ -460,7 +463,7 @@ class RecordErrorTestCase(BaseTestCase):
                                                         False, "2020-01-01 00:00:00", is_known_error=True,
                                                         last_error_data=req)},
                               self.handler.errors_seen.dict)
-        self.assertEquals(None, self.smtp_stub.last_args)
+        self.assertEqual(None, self.smtp_stub.last_args)
 
     def test_ignores_third_party_whitelisted_errors(self):
         req = api_ttypes.RecordErrorRequest(
@@ -550,8 +553,8 @@ class POpenStub(object):
 
     def __init__(self):
         self.last_args = None
-        self.stdout = StringIO.StringIO()
-        self.stderr = StringIO.StringIO()
+        self.stdout = StringIO()
+        self.stderr = StringIO()
 
     def __call__(self, args, **kwargs):
         self.last_args = args
@@ -587,7 +590,7 @@ class OpenFileStub(object):
         self.current_file = None
 
     def set_file(self, filename, contents):
-        self.files[filename] = StringIO.StringIO(contents)
+        self.files[filename] = StringIO(contents)
 
     def __enter__(self, *args, **kwargs):
         return self.files[self.current_file]

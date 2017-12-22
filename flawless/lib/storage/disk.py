@@ -12,6 +12,8 @@
 
 import os
 
+from future.utils import iteritems
+
 import flawless.lib.config
 from flawless.lib.data_structures.persistent_dictionary import PersistentDictionary
 from flawless.lib.storage import StorageInterface
@@ -39,7 +41,7 @@ class DiskStorage(StorageInterface):
 
         # Build new copy of dict since migrate_thrift_obj may change the hash code of the keys of the dict
         migrated_dict = dict()
-        for key, value in self.disk_dict.dict.items():
+        for key, value in iteritems(self.disk_dict.dict):
             self.migrate_thrift_obj(key)
             self.migrate_thrift_obj(value)
             migrated_dict[key] = value
@@ -53,7 +55,7 @@ class DiskStorage(StorageInterface):
         self.disk_dict.close()
 
     def iteritems(self):
-        return self.disk_dict.dict.iteritems()
+        return iteritems(self.disk_dict.dict)
 
     def __setitem__(self, key, item):
         self.disk_dict[key] = item

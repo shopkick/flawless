@@ -13,6 +13,7 @@
 import socket
 import sys
 
+from future.utils import raise_
 try:
     import webob
 except:
@@ -35,7 +36,7 @@ class FlawlessMiddleware(object):
             reconstructed_req = self._reconstruct_request(environ)
             flawless.client.record_error(hostname=self.hostname, tb=tb, exception_message=repr(value),
                                          additional_info=reconstructed_req)
-            raise value, None, tb
+            raise_(value, None, tb)
 
     def _reconstruct_request(self, environ):
         request_str = ""
