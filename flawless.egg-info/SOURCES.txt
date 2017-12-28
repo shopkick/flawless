@@ -15,6 +15,7 @@ flawless.egg-info/SOURCES.txt
 flawless.egg-info/dependency_links.txt
 flawless.egg-info/entry_points.txt
 flawless.egg-info/not-zip-safe
+flawless.egg-info/requires.txt
 flawless.egg-info/top_level.txt
 flawless/client/__init__.py
 flawless/client/client.py

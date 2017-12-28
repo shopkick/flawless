@@ -73,13 +73,13 @@ class SimpleRequestHTTPHandler(BaseHTTPRequestHandler):
         finally:
             self.end_headers()
         if ret:
-            self.wfile.write(ret)
+            self.wfile.write(bytes(ret.encode('utf8')))
 
     def do_POST(self):
         # Read in POST body
         parts = urlparse.urlparse(self.path)
-        content_length = int(self.headers.getheader("Content-Length"))
-        req_str = self.rfile.read(content_length)
+        content_length = int(self.headers.get("Content-Length"))
+        req_str = self.rfile.read(content_length).decode('utf8')
 
         ret = None
         try:
@@ -95,7 +95,7 @@ class SimpleRequestHTTPHandler(BaseHTTPRequestHandler):
             self.end_headers()
 
         if ret:
-            self.wfile.write(ret)
+            self.wfile.write(bytes(ret.encode('utf8')))
 
 
 def serve(conf_path, storage_factory=None):
