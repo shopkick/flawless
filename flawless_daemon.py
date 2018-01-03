@@ -8,7 +8,7 @@ if __name__ == "__main__":
     sys.path.pop(0)
 
 import daemon
-import daemon.pidlockfile
+import daemon.pidfile
 import lockfile
 import os.path
 import os
@@ -32,7 +32,7 @@ def get_context(pid_file_path, error_log):
     context.stdout = error_log
     context.stderr = error_log
     if pid_file_path:
-        context.pidfile = daemon.pidlockfile.TimeoutPIDLockFile(pid_file_path, acquire_timeout=2)
+        context.pidfile = daemon.pidfile.TimeoutPIDLockFile(pid_file_path, acquire_timeout=2)
     return context
 
 
