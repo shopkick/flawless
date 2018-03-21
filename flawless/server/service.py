@@ -575,10 +575,13 @@ class FlawlessThriftServiceHandler(FlawlessServiceBaseClass):
 
         # Send the email
         log.info("Sending email for %s to %s" % (str(err_key), ", ".join(email_recipients)))
-        self._sendmail(
-            to_addresses=email_recipients,
-            subject="Error on %s in %s" % (request.hostname, err_key.filename),
-            body="<br />".join([s for s in email_body if s]),
-        )
-        err_info.email_sent = True
-        self.errors_seen[err_key] = err_info
+        try:
+            self._sendmail(
+                to_addresses=email_recipients,
+                subject="Error on %s in %s" % (request.hostname, err_key.filename),
+                body="<br />".join([s for s in email_body if s]),
+            )
+            err_info.email_sent = True
+            self.errors_seen[err_key] = err_info
+        except smtplib.SMTPRecipientsRefused:
+            log.error("Unable to send email to: %s for %s" % (str(err_key), ", ".join(email_recipients)))

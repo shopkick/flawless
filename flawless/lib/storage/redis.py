@@ -32,15 +32,21 @@ class RedisStorage(StorageInterface):
         config = flawless.lib.config.get()
         self.redis_version = config.redis_version
 
-    def _serialize(self, value):
-        return pickle.dumps(value, pickle.HIGHEST_PROTOCOL)
+    def _redis_key(self, key):
+        '''We use repr instead of pickle.dumps(key) because in pickle dumping the object is not always guaranteed
+        to be the same exact string'''
+        return repr(key)
 
-    def _deserialize(self, data):
-        if data is None:
-            return None
-        obj = pickle.loads(data)
-        self.migrate_thrift_obj(obj)
-        return obj
+    def _serialize_data(self, key, value):
+        return pickle.dumps((key, value), pickle.HIGHEST_PROTOCOL)
+
+    def _deserialize_data(self, data):
+        if data is None or not isinstance(data, tuple) or len(data) != 2:
+            return None, None
+        key, value = pickle.loads(data)
+        self.migrate_thrift_obj(key)
+        self.migrate_thrift_obj(value)
+        return key, value
 
     def _hscan_iter(self, name):
         if hasattr(self.client, "hscan_iter") and self.redis_version >= '2.8':
@@ -53,17 +59,15 @@ class RedisStorage(StorageInterface):
             return
 
     def iteritems(self):
-        for key, value in self._hscan_iter(self.redis_partition_name):
-            key = self._deserialize(key)
-            value = self._deserialize(value)
-            yield (key, value)
+        for redis_key, data in self._hscan_iter(self.redis_partition_name):
+            yield self._deserialize_data(data)
 
     def __setitem__(self, key, item):
-        self.client.hset(self.redis_partition_name, self._serialize(key), self._serialize(item))
+        self.client.hset(self.redis_partition_name, self._redis_key(key), self._serialize_data(key, item))
 
     def __getitem__(self, key):
-        data = self.client.hget(self.redis_partition_name, self._serialize(key))
-        return self._deserialize(data)
+        data = self.client.hget(self.redis_partition_name, self._redis_key(key))
+        return self._deserialize_data(data)[1]
 
     def __contains__(self, key):
-        return self.client.hexists(self.redis_partition_name, self._serialize(key))
+        return self.client.hexists(self.redis_partition_name, self._redis_key(key))
