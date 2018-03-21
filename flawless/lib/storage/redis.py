@@ -41,9 +41,12 @@ class RedisStorage(StorageInterface):
         return pickle.dumps((key, value), pickle.HIGHEST_PROTOCOL)
 
     def _deserialize_data(self, data):
-        if data is None or not isinstance(data, tuple) or len(data) != 2:
+        if data is None:
             return None, None
-        key, value = pickle.loads(data)
+        parsed_data = pickle.loads(data)
+        if not isinstance(parsed_data, tuple) or len(parsed_data) != 2:
+            return None, None
+        key, value = parsed_data
         self.migrate_thrift_obj(key)
         self.migrate_thrift_obj(value)
         return key, value
