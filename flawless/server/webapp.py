@@ -114,8 +114,8 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
 
         for developer, score in sorted(developer_score.items(), key=lambda t: t[1], reverse=True):
             html_parts.append("<strong id=\"%s\">%s (score: %d)</strong>" % (developer.replace('"', '\''), developer, score))
-            for err_key, err_info in grouped_errors[developer]:
-                html_parts.append("Number of Occurrences: " + str(err_info.error_count))
+            for err_key, err_info in sorted(grouped_errors[developer], key=lambda t: t[1].error_count, reverse=True):
+                html_parts.append("Number of Occurrences: {:,}".format(err_info.error_count))
                 html_parts.append("Last Occurred: " + err_info.last_occurrence)
                 html_parts.append("Filename: " + err_key.filename)
                 html_parts.append("Function Name: " + err_key.function_name)
@@ -136,8 +136,14 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
 
     def view_traceback(self, filename="", function_name="", text="", line_number="", timestamp=None):
         errors_seen = self._get_errors_seen_for_ts(timestamp)
-        err_key = api_ttypes.ErrorKey(filename=filename, function_name=function_name,
-                                      text=text, line_number=int(line_number))
+
+        # In python 2 we need to turn the string arguments into unicode.
+        def convert(s):
+            if hasattr(s, 'decode'):
+                return s.decode()
+
+        err_key = api_ttypes.ErrorKey(filename=convert(filename), function_name=convert(function_name),
+                                      text=convert(text), line_number=int(line_number))
 
         err_info = errors_seen[err_key]
         if err_info:
