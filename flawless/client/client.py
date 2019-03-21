@@ -268,6 +268,6 @@ def _wrap_function_with_error_decorator(func,
 
             # Reraise exception if so desired
             if reraise_exception:
-                setattr(value, "_flawless_already_caught", True)
+                object.__setattr__(value, "_flawless_already_caught", True)
                 raise_(value, None, sys_traceback)
     return wrapped_func_with_error_reporting
