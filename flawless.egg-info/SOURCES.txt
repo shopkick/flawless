@@ -2,6 +2,7 @@ CHANGES
 LICENSE
 MANIFEST.in
 PKG-INFO
+README
 README.md
 flawless_daemon.py
 requirements.txt

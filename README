@@ -1,0 +1,111 @@
+Flawless
+========
+
+Flawless is a simple Python framework developed at shopkick for
+detecting bugs in a production environment. Flawless traps exceptions
+and then sends an email to the developer responsible for causing the
+exception. Flawless integrates with git and uses git-blame to determine
+which developer to email.
+
+Project website: http://shopkick.github.com/flawless/
+
+Why You Should Use Flawless
+---------------------------
+
+-  Only sends 1 email per line of code. Even if a particular line of
+   code causes thousands of exceptions, only one email will be sent.
+
+-  Only emails 1 developer. Flawless uses git-blame to figure out which
+   developer is responsible for a particular exception, and will only
+   email that developer.
+
+-  Flawless logs the values of every variable in the stack frame at the
+   time the exception occurred. This makes debugging ten times faster.
+
+-  Don’t report exceptions in old code. If you set
+   report_only_after_minimum_date, then Flawless will only report
+   exceptions caused by code modified after
+   report_only_after_minimum_date.
+
+-  Don’t alert on library code. You can mark certain files/functions as
+   library code, and when an exception originates in those
+   files/functions, the caller will be blamed for the error instead of
+   the library code.
+
+4 Step Setup Guide
+------------------
+
+1. Install Flawless. After this step you should have an executable named
+   flawless in your path.
+
+   $> python setup.py install
+
+2. Setup the Flawless server. Go to the server which you want to host
+   the Flawless backend. Then use the following command to start a short
+   questionnaire to setup the server.
+
+   $> flawless configure
+
+3. Start the Flawless server
+
+   $> flawless start -conf path/to/flawless.cfg
+
+4. Integrate the Flawless client into your code. If you are running a
+   WSGI application such as django or pylons/pyramid, simply add the
+   flawless.client.middleware to your application. Otherwise you can
+   wrap particular functions or entire classes by using
+   flawless.client.decorators. View the examples directory for some
+   actual code examples.
+
+How it Works
+------------
+
+The Flawless client wraps your code with a try/except block. When an
+exception is caught it then sends the entire traceback to the Flawless
+server. The Flawless server then aggregates exception reports from
+clients and figures out which line of code caused the exception. Once
+the line that caused the exception is identified, Flawless runs “git
+blame” to determine the email address of the developer that last touched
+that line of code. Flawless then sends the developer an email with the
+traceback.
+
+Exceptions can be whitelisted if they are expected. To whitelist an
+exception you must specify the filename, function name, and the text
+from the line of code being whitelisted in the appropriate config file.
+Alternatively, exception emails include a link to automatically add an
+exception to the whitelist. It is possible to whitelist all exceptions
+from a particular function by leaving the line of code text blank.
+Likewise, an entire file can be whitelisted by leaving the line of code
+and function blank.
+
+Server User Interface
+---------------------
+
+**/get_weekly_error_report** - Shows all errors that happened this week.
+ses a leaderboard style format to show which developer is responsible
+for causing the most errors this week.
+
+::
+
+    Parameters:
+      timestamp - (optional) Specify which week you want to view. Default is the current week.
+      include_known_errors - (optional) Include errors from config/known_errors. Default is False.
+      include_modified_before_min_date - (optional) Include errors originating in code modified
+      before flawless.cfg option "report_only_after_minimum_date". Default is False.
+
+**/check_health** - Check if the server is up and running. Also displays
+server’s configuration parameters
+
+**/add_known_error** - Webpage in which you can whitelist errors
+
+**/view_traceback** - View the most recent traceback for a particular
+error
+
+::
+
+    Parameters:
+      filename - (required) Specify the filename in which the error occurred
+      function_name - (required) Specify the name of the function in which the error occurred
+      line_number - (required) Specify the line number on which the error occurred
+      text - (required) Specify the full text that appears on line_number
+      timestamp - (optional) Specify which week you want to view. Default is the current week.

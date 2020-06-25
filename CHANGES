@@ -1,3 +1,4 @@
+v0.4.5 2020-06-24 -- Fix exception when code contains unicode characters
 v0.4.4 2019-03-21 -- Deploy fix for when thrift classes are immutable
 v0.4.2 2018-03-20 -- Fix bug with redis storage when pickle returned different results
 v0.4.1 2017-12-28 -- Bug fixes to the webapp for py2 and py3 compatibility

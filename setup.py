@@ -36,9 +36,9 @@ def markdown_to_reST(text):
 
 setup(
     name='flawless',
-    version='0.4.4',
+    version='0.4.5',
     description='Python Error Monitoring and Reporting',
-    long_description=markdown_to_reST(open("README.md").read()),
+    long_description=open("README").read(),
     license='MPL 2.0',
     author='John Egan',
     author_email='jwegan@gmail.com',
