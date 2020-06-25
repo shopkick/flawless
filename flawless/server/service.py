@@ -13,7 +13,6 @@
 from __future__ import absolute_import
 import __main__
 
-import cgi
 try:
     from email.mime.text import MIMEText
 except ImportError:
@@ -21,6 +20,7 @@ except ImportError:
 import collections
 import datetime
 from functools import reduce
+import html
 import logging
 import os
 import os.path
@@ -244,7 +244,7 @@ class FlawlessServiceBaseClass(object):
 
     def _format_traceback(self, err_info, append_locals=True, show_full_stack=False, include_err_info=False,
                           linebreak="<br />", spacer="&nbsp;", start_bold="<strong>",
-                          end_bold="</strong>", escape_func=cgi.escape):
+                          end_bold="</strong>", escape_func=html.escape):
         request = err_info.last_error_data
         parts = []
         if include_err_info:

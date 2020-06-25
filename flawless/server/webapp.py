@@ -13,9 +13,9 @@
 from __future__ import absolute_import
 import __main__
 
-import cgi
 import copy
 import collections
+import html
 import inspect
 import logging
 
@@ -26,6 +26,11 @@ try:
 except ImportError:
     import urllib.parse as urlparse
     urlencode = urlparse.urlencode
+
+try:
+  basestring
+except NameError:
+  basestring = str
 
 
 from future.utils import iteritems
@@ -122,7 +127,7 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
                 html_parts.append("Line Number: " + str(err_key.line_number))
                 html_parts.append("Date Committed: " + err_info.date)
                 html_parts.append("Email Sent: " + str(err_info.email_sent))
-                params = copy.copy(err_key.__dict__)
+                params = {k: v.encode('utf-8') if isinstance(v, basestring) else str(v) for k, v in err_key.__dict__.items()}
                 if timestamp:
                     params["timestamp"] = timestamp
                 view_url = "%s/view_traceback?%s" % (config.hostname, urlencode(params))
@@ -193,7 +198,7 @@ class FlawlessWebServiceHandler(FlawlessServiceBaseClass):
     ############################## Add New Known Error ##############################
 
     def add_known_error(self, filename="", function_name="", code_fragment=""):
-        code_fragment = cgi.escape(code_fragment)
+        code_fragment = html.escape(code_fragment)
         return """
             <html>
                 <head>
